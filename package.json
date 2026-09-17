@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
-    "@types/three": "^0.185.0",
+    "@types/three": "^0.186.0",
     "c8": "^12.0.0",
     "jsdom": "^29.1.1",
     "onnx-proto": "^8.0.1",
@@ -57,6 +57,6 @@
     "@fontsource/ibm-plex-mono": "^5.3.0",
     "@fontsource/space-grotesk": "^5.3.0",
     "lucide": "^1.47.0",
-    "three": "^0.185.0"
+    "three": "^0.186.0"
   }
 }
