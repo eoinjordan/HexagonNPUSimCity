@@ -7,7 +7,20 @@ motion is the dataflow between them. Follow an inference from weights in memory,
 through the scalar, vector and tensor accelerators fused around a shared memory,
 and back out again.
 
-No installation to explore — it runs in a browser with WebGL2.
+No installation to explore — it runs in a browser with WebGL2. View here: https://github.com/eoinjordan/HexagonNPUSimCity/deployments/github-pages
+
+### The NPU at a glance
+
+Districts are NPU components; the moving particles are the dataflow (cyan activations, orange weights from DRAM). Press `N` to swing between night and day.
+
+![Overview of the Hexagon NPU city with animated dataflow, toggling day and night](docs/media/overview.gif)
+
+### Guided tour
+
+Press `T` to follow one inference through the fused pipeline — the camera glides between districts and explains each one.
+
+![Guided tour gliding between the VTCM, scalar, HVX and HMX districts](docs/media/tour.gif)
+
 
 > **Independent & non-commercial.** Not affiliated with, sponsored by, or endorsed
 > by Qualcomm. Hexagon, Snapdragon, Adreno and Oryon are trademarks of Qualcomm
@@ -38,17 +51,6 @@ and its [QNN example](https://github.com/edgeimpulse/example-android-inferencing
 
 > Recorded from the running app. Everything on screen is **illustrative** (a teaching model), not a hardware measurement.
 
-### The NPU at a glance
-
-Districts are NPU components; the moving particles are the dataflow (cyan activations, orange weights from DRAM). Press `N` to swing between night and day.
-
-![Overview of the Hexagon NPU city with animated dataflow, toggling day and night](docs/media/overview.gif)
-
-### Guided tour
-
-Press `T` to follow one inference through the fused pipeline — the camera glides between districts and explains each one.
-
-![Guided tour gliding between the VTCM, scalar, HVX and HMX districts](docs/media/tour.gif)
 
 ### Quantization / precision
 
