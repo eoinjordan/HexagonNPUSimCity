@@ -1,0 +1,104 @@
+{
+  "measuredAt": "2026-09-17T11:19:41.170Z",
+  "llamaVersion": "",
+  "host": {
+    "platform": "darwin",
+    "architecture": "arm64",
+    "cpu": "Apple M1 Pro",
+    "memoryBytes": 34359738368
+  },
+  "server": "http://127.0.0.1:8080",
+  "dashboard": "http://127.0.0.1:4318",
+  "model": "qwen2.5-0.5b-instruct-q4_k_m",
+  "directGeneration": {
+    "prompt": "Explain matrix multiplication in one short sentence.",
+    "response": "Matrix multiplication is a mathematical operation that combines two matrices of the same dimensions to produce a new matrix of the same dimensions. This operation is used in various fields such as linear algebra, computer graphics, and data analysis.",
+    "usage": {
+      "completion_tokens": 44,
+      "prompt_tokens": 38,
+      "total_tokens": 82,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 38,
+      "prompt_ms": 433.664,
+      "prompt_per_token_ms": 11.41221052631579,
+      "prompt_per_second": 87.6254427390791,
+      "predicted_n": 44,
+      "predicted_ms": 541.316,
+      "predicted_per_token_ms": 12.302636363636365,
+      "predicted_per_second": 81.2833908474902
+    }
+  },
+  "method": {
+    "trials": 5,
+    "excludedDashboardWarmups": 1,
+    "dashboardTokenLimit": 32,
+    "cachePrompt": false,
+    "concurrency": 1
+  },
+  "samples": [
+    {
+      "trial": 1,
+      "source": "llamacpp",
+      "model": "qwen2.5-0.5b-instruct-q4_k_m",
+      "backend": "unverified",
+      "elapsedMs": 446.6411669999361,
+      "generatedTokens": 32,
+      "generationMs": 411.237,
+      "tokensPerSecond": 77.81400992614964
+    },
+    {
+      "trial": 2,
+      "source": "llamacpp",
+      "model": "qwen2.5-0.5b-instruct-q4_k_m",
+      "backend": "unverified",
+      "elapsedMs": 627.3494170000777,
+      "generatedTokens": 32,
+      "generationMs": 594.263,
+      "tokensPerSecond": 53.848211986948535
+    },
+    {
+      "trial": 3,
+      "source": "llamacpp",
+      "model": "qwen2.5-0.5b-instruct-q4_k_m",
+      "backend": "unverified",
+      "elapsedMs": 565.6832920000888,
+      "generatedTokens": 32,
+      "generationMs": 525.334,
+      "tokensPerSecond": 60.91362828219762
+    },
+    {
+      "trial": 4,
+      "source": "llamacpp",
+      "model": "qwen2.5-0.5b-instruct-q4_k_m",
+      "backend": "unverified",
+      "elapsedMs": 444.23879200033844,
+      "generatedTokens": 32,
+      "generationMs": 409.787,
+      "tokensPerSecond": 78.08934885684515
+    },
+    {
+      "trial": 5,
+      "source": "llamacpp",
+      "model": "qwen2.5-0.5b-instruct-q4_k_m",
+      "backend": "unverified",
+      "elapsedMs": 427.2461660001427,
+      "generatedTokens": 32,
+      "generationMs": 388.836,
+      "tokensPerSecond": 82.29690666502073
+    }
+  ],
+  "summary": {
+    "meanTokensPerSecond": 70.59242114343235,
+    "medianTokensPerSecond": 77.81400992614964,
+    "minTokensPerSecond": 53.848211986948535,
+    "maxTokensPerSecond": 82.29690666502073,
+    "meanGenerationMs": 465.8914,
+    "meanRequestMs": 502.23176680011676
+  },
+  "caveat": "Local integration smoke test, not a controlled performance or accuracy benchmark. Timing API does not prove the hardware backend; no Qualcomm/QNN or Apple Neural Engine inference is claimed."
+}

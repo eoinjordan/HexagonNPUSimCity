@@ -26,6 +26,7 @@ import { createTour } from './ui/tour'
 import { createHelp } from './ui/help'
 import { createControls } from './ui/controls'
 import { createSettings } from './ui/settings'
+import { createGetApp } from './ui/getapp'
 import { el } from './ui/dom'
 
 /* ============================================================================
@@ -141,6 +142,7 @@ const inspector = createInspector(bus)
 const tour = createTour(bus)
 const help = createHelp(bus)
 const settings = createSettings(bus, sim)
+const getApp = createGetApp()
 createRuntimePanel(document.getElementById('hud')!)
 
 // A ring that sits under the selected district.
@@ -197,6 +199,7 @@ bus.on('theme:toggle', () => {
 })
 bus.on('help:toggle', () => help.toggle())
 bus.on('settings:toggle', () => settings.toggle())
+bus.on('getapp:toggle', () => getApp.toggle())
 bus.on('tour:toggle', () => tour.toggle())
 bus.on('reset', () => {
   sim.reset()
@@ -210,7 +213,8 @@ bus.on('reset', () => {
 })
 
 createControls(bus, () => {
-  if (settings.open) settings.close()
+  if (getApp.open) getApp.close()
+  else if (settings.open) settings.close()
   else if (help.open) help.close()
   else if (tour.active) tour.stop()
   else deselect()

@@ -88,7 +88,7 @@ test('HUD lists every workload, precision and district without duplicating on re
   for (const district of DISTRICTS) assert.ok(document.getElementById('hud-right').textContent.includes(district.name))
   createHud({ bus, initial: sim.state })
   assert.equal(document.querySelectorAll('#hud-top select').length, 2)
-  assert.equal(document.querySelectorAll('#hud-left .tool').length, 6)
+  assert.equal(document.querySelectorAll('#hud-left .tool').length, 7)
   assert.equal(document.querySelectorAll('#hud-bottom .metric').length, 4)
 })
 

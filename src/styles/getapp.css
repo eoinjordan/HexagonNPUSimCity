@@ -1,0 +1,132 @@
+/* "Get the app" modal — QR codes to the native preview installers. */
+
+#getapp-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  background: rgba(3, 6, 14, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+#getapp-overlay[hidden] {
+  display: none;
+}
+
+.getapp-panel {
+  width: min(560px, calc(100% - 40px));
+  max-height: calc(100% - 60px);
+  overflow: auto;
+  padding: 22px 24px;
+  border-radius: 16px;
+  background: var(--panel-solid);
+  border: 1px solid var(--stroke-strong);
+  box-shadow: var(--shadow);
+}
+
+.getapp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.getapp-head h2 {
+  margin: 0;
+  font-size: 19px;
+}
+
+.getapp-close {
+  background: none;
+  border: 0;
+  color: var(--ink-faint);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.getapp-close:hover {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.getapp-sub {
+  margin: 4px 0 16px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-dim);
+}
+
+.getapp-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.getapp-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--stroke);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  text-align: center;
+}
+
+.getapp-qr {
+  background: #fff;
+  padding: 8px;
+  border-radius: 10px;
+  line-height: 0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.getapp-qr img {
+  display: block;
+  width: 160px;
+  height: 160px;
+}
+
+.getapp-kind {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+}
+
+.getapp-name {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.getapp-card .btn {
+  text-decoration: none;
+  margin-top: 2px;
+}
+
+.getapp-note {
+  margin: 14px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
+
+.getapp-all {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--accent);
+}
+
+@media (max-width: 560px) {
+  .getapp-cards {
+    grid-template-columns: 1fr;
+  }
+}

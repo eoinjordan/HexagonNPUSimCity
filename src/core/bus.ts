@@ -9,6 +9,7 @@ export type BusEvents = {
   'tour:toggle': void
   'help:toggle': void
   'settings:toggle': void
+  'getapp:toggle': void
   'pause:toggle': void
   'theme:toggle': void
   'overlay:dismiss': void
