@@ -1,0 +1,24 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="Hexagon NPU SimCity" Manufacturer="HexagonNPUSimCity contributors" Version="$(Version)" UpgradeCode="0B24E3EB-3F0B-462A-B585-88A86052A816" Scope="perMachine">
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Hexagon NPU SimCity is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="HexagonNPUSimCity" />
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ShortcutFolder" Name="Hexagon NPU SimCity">
+        <Component Id="StartMenuShortcut" Guid="*">
+          <Shortcut Id="LaunchShortcut" Name="Hexagon NPU SimCity" Target="[INSTALLFOLDER]HexagonNPUSimCity.exe" WorkingDirectory="INSTALLFOLDER" />
+          <RemoveFolder Id="RemoveShortcuts" On="uninstall" />
+          <RegistryValue Root="HKLM" Key="Software\HexagonNPUSimCity" Name="Installed" Type="integer" Value="1" KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+    <Feature Id="Application" Title="Hexagon NPU SimCity" Level="1">
+      <Files Include="$(PublishDir)\**" Directory="INSTALLFOLDER">
+        <Exclude Files="**\*.pdb" />
+      </Files>
+      <ComponentRef Id="StartMenuShortcut" />
+    </Feature>
+  </Package>
+</Wix>
