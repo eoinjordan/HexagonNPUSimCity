@@ -7,8 +7,7 @@ motion is the dataflow between them. Follow an inference from weights in memory,
 through the scalar, vector and tensor accelerators fused around a shared memory,
 and back out again.
 
-No installation to explore — it runs in a browser with WebGL2. View here: https://github.com/eoinjordan/HexagonNPUSimCity/deployments/github-pages
-
+No installation to explore — it runs in a browser with WebGL2. View here: https://eoinjordan.github.io/HexagonNPUSimCity/
 ### The NPU at a glance
 
 Districts are NPU components; the moving particles are the dataflow (cyan activations, orange weights from DRAM). Press `N` to swing between night and day.
