@@ -45,7 +45,7 @@
     "onnx-proto": "^8.0.1",
     "onnxruntime-node": "^1.30.0",
     "tsx": "^4.23.13",
-    "typescript": "^5.9.2",
+    "typescript": "^7.0.2",
     "vite": "^7.1.5"
   },
   "overrides": {
