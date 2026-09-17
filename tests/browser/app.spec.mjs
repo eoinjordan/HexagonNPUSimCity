@@ -64,7 +64,7 @@ test('production controls change workload and precision and keyboard pause freez
 })
 
 test('toolbar is keyboard-operable and reduced motion leaves the scene stable', async ({ page }) => {
-  await expect(page.locator('#hud-left').getByRole('button')).toHaveCount(6)
+  await expect(page.locator('#hud-left').getByRole('button')).toHaveCount(7)
   const firstTool = page.locator('#hud-left').getByRole('button').first()
   await firstTool.focus()
   await page.keyboard.press('Enter')
