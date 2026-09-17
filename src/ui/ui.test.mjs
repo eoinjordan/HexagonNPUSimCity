@@ -6,14 +6,23 @@ import { createClock } from '../sim/clock.ts'
 import { createSim, PRECISIONS, WORKLOADS } from '../sim/model.ts'
 import { DISTRICTS, districtById } from '../world/districts.ts'
 import { clear, el } from './dom.ts'
+import { createControls } from './controls.ts'
+import { createHelp } from './help.ts'
 import { createHud } from './hud.ts'
 import { createInspector } from './panel.ts'
 import { createTour } from './tour.ts'
 import { installDom } from '../../tests/helpers/dom.mjs'
 
 function fixture(context) {
-  const environment = installDom({ html: '<header id="hud-top"></header><aside id="hud-left"></aside><aside id="hud-right"></aside><footer id="hud-bottom"></footer><div id="inspector"></div><div id="tour-layer"></div>' })
-  context.after(environment.cleanup)
+  const environment = installDom({ html: '<header id="hud-top"></header><aside id="hud-left"></aside><aside id="hud-right"></aside><footer id="hud-bottom"></footer><div id="inspector"></div><div id="tour-layer"></div><div id="help-overlay" hidden></div>' })
+  const cleanups = []
+  context.after(() => {
+    try {
+      for (const cleanup of cleanups) cleanup()
+    } finally {
+      environment.cleanup()
+    }
+  })
   const bus = createBus()
   const sim = createSim()
   const hud = createHud({ bus, initial: sim.state })
@@ -24,7 +33,7 @@ function fixture(context) {
     element.value = value
     element.dispatchEvent(new environment.window.Event('change', { bubbles: true }))
   }
-  return { ...environment, bus, sim, hud, inspector, tour, select }
+  return { ...environment, bus, sim, hud, inspector, tour, select, onCleanup: (cleanup) => cleanups.push(cleanup) }
 }
 
 test('DOM helper creates attributes, boolean flags, styles, datasets, children and event handlers', (context) => {
@@ -93,6 +102,15 @@ test('HUD emits validated selectors and ignores unknown input values', (context)
   select(0, 'invalid-workload')
   select(1, 'invalid-precision')
   assert.deepEqual(received, [{ id: 'vision-conv' }, { value: 'INT4' }])
+})
+
+test('HUD keeps the illustrative qualifier next to metrics and labels both selectors', (context) => {
+  const { document } = fixture(context)
+  const caveat = document.querySelector('#hud-bottom #model-caveat')
+  assert.match(caveat.textContent, /illustrative.*not hardware measurements/i)
+  assert.equal(caveat.hidden, false)
+  assert.equal(document.getElementById('precision').getAttribute('aria-describedby'), caveat.id)
+  for (const id of ['precision', 'workload']) assert.ok(document.querySelector(`label[for="${id}"]`))
 })
 
 test('HUD toolbar and district legend dispatch the expected action contracts', (context) => {
@@ -237,4 +255,92 @@ test('component integration: HUD events drive the real model, clock and inspecto
   hud.update(sim.state)
   assert.deepEqual(sim.state, createSim().state)
   assert.equal(document.querySelectorAll('#hud-top select')[1].value, 'INT8')
+})
+
+test('keyboard controls map every documented shortcut and can be disposed', (context) => {
+  const { window, bus, onCleanup } = fixture(context)
+  const received = []
+  let dismissals = 0
+  const mapping = [
+    ['t', 'tour:toggle'], ['T', 'tour:toggle'],
+    ['k', 'pause:toggle'], ['K', 'pause:toggle'], ['p', 'pause:toggle'], ['P', 'pause:toggle'],
+    ['h', 'camera:home'], ['H', 'camera:home'],
+    ['n', 'theme:toggle'], ['N', 'theme:toggle'],
+    ['r', 'reset'], ['R', 'reset'],
+    ['1', 'workload:change'], ['2', 'workload:change'], ['3', 'workload:change'],
+    ['?', 'help:toggle'], ['/', 'help:toggle'],
+  ]
+  for (const name of new Set(mapping.map((entry) => entry[1]))) bus.on(name, (payload) => received.push({ name, payload }))
+  const controls = createControls(bus, () => dismissals++)
+  onCleanup(() => controls.dispose())
+  for (const [key] of mapping) {
+    const event = new window.KeyboardEvent('keydown', { key, cancelable: true })
+    window.dispatchEvent(event)
+    assert.equal(event.defaultPrevented, key === '?' || key === '/')
+  }
+  assert.deepEqual(received.map((entry) => entry.name), mapping.map((entry) => entry[1]))
+  assert.deepEqual(received.filter((entry) => entry.name === 'workload:change').map((entry) => entry.payload.id), ['llm-decode', 'vision-conv', 'idle'])
+  window.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape' }))
+  assert.equal(dismissals, 1)
+  const count = received.length
+  window.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Unmapped' }))
+  controls.dispose()
+  controls.dispose()
+  window.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'k' }))
+  assert.equal(received.length, count)
+})
+
+test('keyboard shortcuts leave editing fields and OS/browser shortcuts untouched', (context) => {
+  const { window, document, bus, onCleanup } = fixture(context)
+  let calls = 0
+  bus.on('pause:toggle', () => calls++)
+  const controls = createControls(bus, () => calls++)
+  onCleanup(() => controls.dispose())
+  for (const tag of ['input', 'select', 'textarea']) {
+    const input = document.createElement(tag)
+    document.body.append(input)
+    input.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'k', bubbles: true }))
+  }
+  for (const modifier of ['metaKey', 'ctrlKey', 'altKey']) {
+    window.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'k', [modifier]: true }))
+  }
+  assert.equal(calls, 0)
+})
+
+test('help is lazy-built, labelled, focused, reusable and dismissible by button, backdrop and Escape', (context) => {
+  const { window, document, bus, onCleanup } = fixture(context)
+  const help = createHelp(bus)
+  const controls = createControls(bus, () => help.close())
+  onCleanup(() => controls.dispose())
+  const overlay = document.getElementById('help-overlay')
+  assert.equal(help.open, false)
+  assert.equal(overlay.childNodes.length, 0)
+  help.close()
+  help.toggle()
+  assert.equal(help.open, true)
+  assert.equal(overlay.hidden, false)
+  assert.equal(overlay.getAttribute('role'), 'dialog')
+  assert.equal(overlay.getAttribute('aria-modal'), 'true')
+  assert.ok(overlay.getAttribute('aria-label'))
+  assert.equal(document.activeElement, overlay.querySelector('.help-close'))
+  assert.match(overlay.textContent, /illustrative/i)
+  const cameraRows = overlay.querySelectorAll('.help-grid > div:first-child .kbd-row')
+  assert.equal(cameraRows[0].textContent, 'OrbitDrag')
+  assert.equal(cameraRows[1].querySelector('span').textContent, 'Pan across the die')
+  for (const district of DISTRICTS) assert.ok(overlay.textContent.includes(district.name))
+  const panel = overlay.firstElementChild
+  panel.click()
+  assert.equal(help.open, true)
+  overlay.querySelector('.help-close').click()
+  assert.equal(help.open, false)
+  help.toggle()
+  assert.equal(overlay.firstElementChild, panel)
+  overlay.click()
+  assert.equal(help.open, false)
+  help.toggle()
+  help.toggle()
+  assert.equal(help.open, false)
+  help.toggle()
+  window.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape' }))
+  assert.equal(overlay.hidden, true)
 })

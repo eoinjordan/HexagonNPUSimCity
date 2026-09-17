@@ -17,6 +17,34 @@ No installation to explore — it runs in a browser with WebGL2.
 Inspired by [PGSimCity](https://github.com/NikolayS/PGSimCity), which does the
 same thing for PostgreSQL.
 
+## See it in motion
+
+> Recorded from the running app. Everything on screen is **illustrative** (a teaching model), not a hardware measurement.
+
+### The NPU at a glance
+
+Districts are NPU components; the moving particles are the dataflow (cyan activations, orange weights from DRAM). Press `N` to swing between night and day.
+
+![Overview of the Hexagon NPU city with animated dataflow, toggling day and night](docs/media/overview.gif)
+
+### Guided tour
+
+Press `T` to follow one inference through the fused pipeline — the camera glides between districts and explains each one.
+
+![Guided tour gliding between the VTCM, scalar, HVX and HMX districts](docs/media/tour.gif)
+
+### Quantization / precision
+
+Switch **format** (INT4 → INT8 → INT16 → FP16) and the HMX *Tensor TOPS* and *tokens/s* readouts scale with the chosen precision — this is how the model represents quantization. The coefficients are illustrative; the arithmetic of integer affine quantization is verified separately in [docs/verification.md](docs/verification.md).
+
+![Cycling precision from INT4 to FP16 while the tensor TOPS and tokens per second change](docs/media/quantization.gif)
+
+### Workloads under different conditions
+
+Switch **workload** — LLM decode, Vision / conv, Idle — and watch the scalar, HVX and HMX utilisation bars and the accelerators themselves respond.
+
+![Switching between LLM decode, vision convolution and idle workloads and watching the utilisation bars react](docs/media/workloads.gif)
+
 ## Quick start
 
 ```bash
@@ -28,7 +56,10 @@ npm run dev      # open the printed localhost URL
 npm run build      # production build to dist/
 npm run preview    # serve the built site
 npm run typecheck  # tsc --noEmit
-npm test           # simulation + clock unit tests
+npm test           # module unit and component integration tests
+npm run test:coverage
+npm run test:browser # real WebGL component tests (install Chromium first)
+npm run test:app     # production app tests under a Pages-style subpath
 ```
 
 ## What you are looking at
@@ -48,7 +79,7 @@ orange**, and system-context labels are drawn quieter and dashed.
 
 ## Controls
 
-Drag to pan, wheel/pinch to zoom, Shift-drag to orbit, click a district to
+Drag to orbit, wheel/pinch to zoom, Shift-drag to pan, click a district to
 inspect it. Press **?** for the full key map and colour legend.
 
 | Key | Action | Key | Action |
@@ -71,6 +102,34 @@ Hexagon workload and its numbers should not be cited as performance data.
 Architecture background is drawn from Qualcomm's public description of the Hexagon
 NPU (fused scalar + vector + tensor accelerators, a large shared memory, and
 micro-tile inferencing within the heterogeneous Qualcomm AI Engine).
+
+See the [calculation and quantization verification](docs/verification.md) for
+primary sources, executable ONNX reference examples, integer ranges, storage
+calculations and the boundary between verified arithmetic and unverified hardware
+performance. Format labels are not a universal Hexagon support matrix; FP16 and
+integer quantization are different, and real models need calibration and testing.
+
+## References & sources
+
+The district model (fused scalar + vector + tensor accelerators around a large shared
+memory, micro-tile inferencing, and the heterogeneous Qualcomm AI Engine) is drawn from
+Qualcomm's public materials. The on-screen figures are **not** taken from these sources —
+see [docs/verification.md](docs/verification.md) for the source-by-source audit and the
+verified integer-quantization examples.
+
+**Qualcomm — Hexagon NPU & AI Engine**
+- [Qualcomm Hexagon NPU](https://www.qualcomm.com/processors/hexagon) — primary reference for the districts and dataflow.
+- [Qualcomm AI Engine](https://www.qualcomm.com/products/technology/processors/ai-engine) — heterogeneous CPU + GPU + NPU.
+- [Qualcomm AI (overview)](https://www.qualcomm.com/artificial-intelligence)
+- [Qualcomm Oryon CPU](https://www.qualcomm.com/processors/oryon) · [Qualcomm Adreno GPU](https://www.qualcomm.com/processors/adreno)
+- [Qualcomm AI Hub](https://aihub.qualcomm.com/)
+
+**Qualcomm — platform figures & quantization workflow** (used only in the verification notes, clearly labelled illustrative vs. cited)
+- [Snapdragon X Elite](https://www.qualcomm.com/laptops/products/snapdragon-x-elite) and its [product brief (87-71417-1 Rev F, PDF)](https://docs.qualcomm.com/doc/87-71417-1/87-71417-1_REV_F_Snapdragon_X_Elite_Product_Brief.pdf) — the “up to 45 TOPS” figure.
+- [AI Hub quantization guide](https://workbench.aihub.qualcomm.com/docs/hub/quantize_examples.html) and [profiling guide](https://workbench.aihub.qualcomm.com/docs/hub/profile_examples.html) — weight/activation precision choices and HTP FP16 support caveats.
+
+**Quantization semantics**
+- ONNX [QuantizeLinear](https://onnx.ai/onnx/operators/onnx__QuantizeLinear.html) / [DequantizeLinear](https://onnx.ai/onnx/operators/onnx__DequantizeLinear.html) — the integer affine model reproduced in [`src/sim/quantization.ts`](src/sim/quantization.ts).
 
 ## Project layout
 

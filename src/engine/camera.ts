@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { clamp01 } from '../core/util'
+import { clamp01, reduceMotion } from '../core/util'
 
 /** The default establishing shot: a three-quarter view over the whole die. */
 const HOME_POS = new THREE.Vector3(48, 42, 66)
@@ -29,14 +29,17 @@ function easeInOut(x: number): number {
 }
 
 export function createCameraRig(camera: THREE.PerspectiveCamera, dom: HTMLElement): CameraRig {
+  const homePosition = () => HOME_TARGET.clone().add(
+    HOME_POS.clone().sub(HOME_TARGET).multiplyScalar(Math.max(1, 0.85 / camera.aspect)),
+  )
   const controls = new OrbitControls(camera, dom)
   controls.enableDamping = true
   controls.dampingFactor = 0.08
   controls.minDistance = 14
-  controls.maxDistance = 170
+  controls.maxDistance = Math.max(170, homePosition().distanceTo(HOME_TARGET))
   controls.maxPolarAngle = Math.PI * 0.49
   controls.target.copy(HOME_TARGET)
-  camera.position.copy(HOME_POS)
+  camera.position.copy(homePosition())
   controls.update()
 
   let tween: Tween | null = null
@@ -62,12 +65,12 @@ export function createCameraRig(camera: THREE.PerspectiveCamera, dom: HTMLElemen
   }
 
   function home(): void {
-    glide(HOME_POS, HOME_TARGET)
+    glide(homePosition(), HOME_TARGET)
   }
 
   function update(dt: number): void {
     if (tween) {
-      tween.t += dt / tween.dur
+      tween.t = reduceMotion() ? 1 : tween.t + dt / tween.dur
       const k = easeInOut(clamp01(tween.t))
       camera.position.lerpVectors(tween.fromPos, tween.toPos, k)
       controls.target.lerpVectors(tween.fromTarget, tween.toTarget, k)

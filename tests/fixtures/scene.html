@@ -131,7 +131,7 @@
             srgb: renderer.outputColorSpace === THREE.SRGBColorSpace,
             filmic: renderer.toneMapping === THREE.ACESFilmicToneMapping,
             shadows: renderer.shadowMap.enabled,
-            softShadows: renderer.shadowMap.type === THREE.PCFSoftShadowMap,
+            filteredShadows: renderer.shadowMap.type === THREE.PCFShadowMap,
             exposure: renderer.toneMappingExposure,
             geometries: renderer.info.memory.geometries,
             calls: renderer.info.render.calls,

@@ -24,7 +24,7 @@ test('renderer creates a nonblank correctly sized WebGL canvas under a project b
   expect(pixels.width).toBe(viewport.width * info.ratio)
   expect(pixels.height).toBe(viewport.height * info.ratio)
   expect(info.ratio).toBeLessThanOrEqual(2)
-  expect(info).toMatchObject({ srgb: true, filmic: true, shadows: true, softShadows: true, exposure: 1.1 })
+  expect(info).toMatchObject({ srgb: true, filmic: true, shadows: true, filteredShadows: true, exposure: 1.1 })
   expect(info.calls).toBeGreaterThan(0)
   await expect(page.locator('#labels-root .label')).toHaveCount(8)
   await page.screenshot({ path: testInfo.outputPath('scene.png') })
@@ -45,9 +45,10 @@ test('simulation advances visible pixels, pauses without drift and resumes witho
   expect((await page.evaluate(() => window.engineTest.rendererInfo())).geometries).toBe(before.info.geometries)
 })
 
-test('real pointer input selects a district and orbit dragging does not select', async ({ page }) => {
+test('real pointer input selects a district and orbit dragging does not select', async ({ page }, testInfo) => {
   const point = await page.evaluate(() => window.engineTest.project('tensor'))
-  await page.mouse.click(point.x, point.y)
+  if (testInfo.project.use.hasTouch) await page.touchscreen.tap(point.x, point.y)
+  else await page.mouse.click(point.x, point.y)
   expect(await page.evaluate(() => window.engineTest.selection())).toBe('tensor')
   await page.evaluate(() => window.engineTest.clearSelection())
   await page.mouse.move(point.x, point.y)

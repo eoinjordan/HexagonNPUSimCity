@@ -8,12 +8,13 @@ const baseURL = `http://127.0.0.1:${port}${base}`
 export default defineConfig({
   testDir: './tests/browser',
   testMatch: app ? 'app.spec.mjs' : 'engine.spec.mjs',
+  outputDir: `test-results/${app ? 'app' : 'engine'}`,
   fullyParallel: false,
   workers: 1,
   forbidOnly: Boolean(process.env.CI),
   retries: 0,
   timeout: 30_000,
-  reporter: [['list'], ['html', { open: 'never' }]],
+  reporter: [['list'], ['html', { open: 'never', outputFolder: `playwright-report/${app ? 'app' : 'engine'}` }]],
   use: {
     baseURL,
     trace: 'retain-on-failure',

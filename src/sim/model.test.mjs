@@ -108,3 +108,47 @@ test('the clock discards paused time and bounds background-tab catch-up', () => 
   clock.advance(180_000)
   assert.ok(sim.state.t - beforePause <= 0.1 + 1e-9)
 })
+
+test('clock rejects non-finite timestamps and reset drops fractional accumulated time', () => {
+  const sim = createSim()
+  const clock = createClock(sim.update)
+  for (const timestamp of [NaN, Infinity, -Infinity]) assert.equal(clock.advance(timestamp), false)
+  assert.equal(clock.advance(0), false)
+  assert.equal(clock.advance(10), false)
+  clock.reset()
+  assert.equal(clock.advance(1000), false)
+  assert.equal(clock.advance(1010), false)
+  assert.equal(sim.state.t, 0)
+  assert.equal(clock.advance(1017), true)
+  assert.equal(sim.state.t, 1 / 60)
+})
+
+test('all illustrative precision coefficients are applied consistently while paused', () => {
+  const sim = createSim()
+  advance(sim)
+  sim.togglePause()
+  const coefficients = { INT4: [80, 95], INT8: [45, 62], INT16: [22, 34], FP16: [20, 30] }
+  const activity = sim.state.util.tensor
+  for (const [precision, [tops, tokens]] of Object.entries(coefficients)) {
+    sim.setPrecision(precision)
+    assert.equal(sim.state.tops, tops * activity)
+    assert.equal(sim.state.tokensPerSec, tokens * activity)
+  }
+})
+
+test('idle reduces modeled load and reset preserves state-object identity', () => {
+  const sim = createSim()
+  const state = sim.state
+  const utilization = state.util
+  advance(sim, 300)
+  const busy = structuredClone(state)
+  sim.setWorkload('idle')
+  advance(sim, 300)
+  assert.equal(state.tokensPerSec, 0)
+  assert.ok(state.tops < busy.tops)
+  assert.ok(state.powerWatts < busy.powerWatts)
+  assert.ok(state.vtcmOccupancy < busy.vtcmOccupancy)
+  sim.reset()
+  assert.equal(sim.state, state)
+  assert.equal(sim.state.util, utilization)
+})

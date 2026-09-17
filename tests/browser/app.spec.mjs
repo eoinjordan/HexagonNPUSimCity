@@ -1,4 +1,9 @@
 import { test, expect } from '@playwright/test'
+import { createHash } from 'node:crypto'
+
+async function canvasHash(canvas) {
+  return createHash('sha256').update(await canvas.screenshot()).digest('hex')
+}
 
 test.beforeEach(async ({ page }) => {
   const errors = []
@@ -42,12 +47,12 @@ test('production controls change workload and precision and keyboard pause freez
   await page.keyboard.press('k')
   await page.clock.fastForward(100)
   const canvas = page.locator('#canvas-root canvas')
-  const paused = await canvas.screenshot()
+  const paused = await canvasHash(canvas)
   await page.clock.fastForward(400)
-  expect(await canvas.screenshot()).toEqual(paused)
+  expect(await canvasHash(canvas)).toEqual(paused)
   await page.keyboard.press('k')
   await page.clock.fastForward(400)
-  expect(await canvas.screenshot()).not.toEqual(paused)
+  expect(await canvasHash(canvas)).not.toEqual(paused)
 })
 
 test('toolbar is keyboard-operable and reduced motion leaves the scene stable', async ({ page }) => {
@@ -61,7 +66,49 @@ test('toolbar is keyboard-operable and reduced motion leaves the scene stable', 
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.clock.fastForward(200)
   const canvas = page.locator('#canvas-root canvas')
-  const still = await canvas.screenshot()
+  const still = await canvasHash(canvas)
   await page.clock.fastForward(400)
-  expect(await canvas.screenshot()).toEqual(still)
+  expect(await canvasHash(canvas)).toEqual(still)
+})
+
+test('home camera keeps all compute district labels within the viewport', async ({ page }) => {
+  const labels = page.locator('#stage .label').filter({ hasText: /scalar accelerator|HVX|HMX/i })
+  await expect(labels).toHaveCount(3)
+  const boxes = await labels.evaluateAll((elements) => elements.map((element) => {
+    const rect = element.getBoundingClientRect()
+    return { name: element.textContent, left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom }
+  }))
+  const viewport = page.viewportSize()
+  for (const box of boxes) {
+    expect(box.left, `${box.name} left edge`).toBeGreaterThanOrEqual(0)
+    expect(box.right, `${box.name} right edge`).toBeLessThanOrEqual(viewport.width)
+    expect(box.top, `${box.name} top edge`).toBeGreaterThanOrEqual(0)
+    expect(box.bottom, `${box.name} bottom edge`).toBeLessThanOrEqual(viewport.height)
+  }
+})
+
+test('keyboard workload, reset, help and persisted theme work end to end', async ({ page }) => {
+  await page.keyboard.press('3')
+  await page.clock.fastForward(40)
+  await expect(page.locator('#workload')).toHaveValue('idle')
+  await page.locator('#precision').selectOption('FP16')
+  await page.locator('#precision').blur()
+  await page.keyboard.press('r')
+  await page.clock.fastForward(40)
+  await expect(page.locator('#workload')).toHaveValue('llm-decode')
+  await expect(page.locator('#precision')).toHaveValue('INT8')
+  await page.keyboard.press('?')
+  await expect(page.locator('#help-overlay')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.locator('#help-overlay')).toBeHidden()
+  const previousTheme = await page.locator('html').getAttribute('data-theme')
+  await page.keyboard.press('n')
+  const expectedTheme = previousTheme === 'night' ? 'day' : 'night'
+  await expect(page.locator('html')).toHaveAttribute('data-theme', expectedTheme)
+  await page.reload()
+  await expect(page.locator('#canvas-root canvas')).toHaveCount(1)
+  await page.clock.fastForward(100)
+  await page.clock.fastForward(1000)
+  await expect(page.locator('#boot')).toBeHidden()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', expectedTheme)
 })

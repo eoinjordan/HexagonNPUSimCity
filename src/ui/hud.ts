@@ -40,6 +40,8 @@ export function createHud(deps: HudDeps): Hud {
   ])
 
   const workloadSel = el('select', {
+    id: 'workload',
+    'aria-label': 'Workload',
     onchange: (e: Event) => {
       const workload = WORKLOADS.find((item) => item.id === (e.target as HTMLSelectElement).value)
       if (workload) bus.emit('workload:change', { id: workload.id })
@@ -48,6 +50,10 @@ export function createHud(deps: HudDeps): Hud {
   for (const w of WORKLOADS) workloadSel.append(el('option', { value: w.id, text: w.label }))
 
   const precisionSel = el('select', {
+    id: 'precision',
+    'aria-label': 'Illustrative numeric format',
+    'aria-describedby': 'model-caveat',
+    title: 'Illustrative format, not a device capability or quantization result',
     onchange: (e: Event) => {
       const precision = PRECISIONS.find((item) => item === (e.target as HTMLSelectElement).value)
       if (precision) bus.emit('precision:change', { value: precision })
@@ -59,8 +65,8 @@ export function createHud(deps: HudDeps): Hud {
   top.append(
     brand,
     el('div', { class: 'spacer' }),
-    el('div', { class: 'control-group' }, [el('label', { text: 'Workload' }), workloadSel]),
-    el('div', { class: 'control-group' }, [el('label', { text: 'Precision' }), precisionSel]),
+    el('div', { class: 'control-group' }, [el('label', { for: 'workload', text: 'Workload' }), workloadSel]),
+    el('div', { class: 'control-group' }, [el('label', { for: 'precision', text: 'Format' }), precisionSel]),
   )
 
   /* ---- left toolbar ---- */
@@ -131,7 +137,10 @@ export function createHud(deps: HudDeps): Hud {
   const bVtcm = bar('VTCM', COLOR.vtcm)
 
   bottom.append(
-    el('div', { class: 'metrics' }, [mTops.node, mTok.node, mPow.node, mWork.node]),
+    el('div', { class: 'metrics' }, [
+      el('p', { id: 'model-caveat', class: 'metrics-note', text: 'Illustrative model - not hardware measurements' }),
+      mTops.node, mTok.node, mPow.node, mWork.node,
+    ]),
     el('div', { class: 'bars' }, [bScalar.node, bVector.node, bTensor.node, bVtcm.node]),
   )
 

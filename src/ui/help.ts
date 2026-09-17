@@ -11,8 +11,8 @@ export interface Help {
 }
 
 const CAMERA_KEYS: [string, string][] = [
-  ['Drag', 'Pan across the die'],
-  ['Shift · drag', 'Orbit'],
+  ['Drag', 'Orbit'],
+  ['Shift · drag', 'Pan across the die'],
   ['Wheel / pinch', 'Zoom'],
   ['Click', 'Select a district'],
 ]

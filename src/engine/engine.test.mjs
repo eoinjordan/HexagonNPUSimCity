@@ -195,3 +195,28 @@ test('initial reduced motion stops packet travel and the preference helper refle
   environment.setReducedMotion(false)
   assert.equal(reduceMotion(), false)
 })
+
+test('flow reset and seeded initialization reproduce the same simulation sequence', (context) => {
+  const environment = installDom()
+  const field = createFlows()
+  const sim = createSim()
+  context.after(() => { disposeScene(field.object); environment.cleanup() })
+  field.update(0, sim.state)
+  const initial = snapshotScene(field.object)
+  const advance = () => {
+    for (let step = 0; step < 60; step++) {
+      sim.update(1 / 60)
+      field.update(1 / 60, sim.state)
+    }
+  }
+  advance()
+  const firstRun = snapshotScene(field.object)
+  sim.setWorkload('idle')
+  advance()
+  sim.reset()
+  field.reset()
+  field.update(0, sim.state)
+  assert.deepEqual(snapshotScene(field.object), initial)
+  advance()
+  assert.deepEqual(snapshotScene(field.object), firstRun)
+})

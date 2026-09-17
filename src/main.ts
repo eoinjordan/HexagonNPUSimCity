@@ -5,6 +5,7 @@ import './styles/ui.css'
 
 import { createBus } from './core/bus'
 import type { DistrictId, Precision, WorkloadId } from './core/types'
+import { reduceMotion } from './core/util'
 
 import { createRenderer } from './engine/renderer'
 import { createCameraRig } from './engine/camera'
@@ -191,6 +192,9 @@ bus.on('tour:toggle', () => tour.toggle())
 bus.on('reset', () => {
   sim.reset()
   flows.reset()
+  clock.reset()
+  city.update(0, sim.state)
+  flows.update(0, sim.state)
   rig.home()
   deselect()
   hud.setPaused(false)
@@ -215,7 +219,15 @@ resize()
 
 // One fixed-step owner of simulation time. A returning background tab must not
 // dump a huge catch-up in at once, so drop the accumulated gap on re-show.
-const clock = createClock((step) => sim.update(step))
+city.update(0, sim.state)
+flows.update(0, sim.state)
+const clock = createClock((step) => {
+  sim.update(step)
+  if (!reduceMotion()) {
+    city.update(step, sim.state)
+    flows.update(step, sim.state)
+  }
+})
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) {
     clock.reset()
@@ -227,19 +239,15 @@ let last = performance.now()
 let booted = false
 function frame(now: number): void {
   requestAnimationFrame(frame)
-  const running = !sim.state.paused
+  const running = !sim.state.paused && !document.hidden
   clock.advance(now, running)
 
   let wall = (now - last) / 1000
   last = now
   if (!Number.isFinite(wall) || wall < 0) wall = 0
   wall = Math.min(wall, 0.1)
-  const simDt = running ? wall : 0
-
-  city.update(simDt, sim.state)
-  flows.update(simDt, sim.state)
   rig.update(wall)
-  if (selRing.visible) selRing.rotation.z += wall * 0.6
+  if (selRing.visible && running && !reduceMotion()) selRing.rotation.z = sim.state.t * 0.6
   hud.update(sim.state)
   inspector.update(sim.state)
 
