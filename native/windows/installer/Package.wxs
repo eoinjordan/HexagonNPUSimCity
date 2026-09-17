@@ -10,7 +10,7 @@
         <Component Id="StartMenuShortcut" Guid="*">
           <Shortcut Id="LaunchShortcut" Name="Hexagon NPU SimCity" Target="[INSTALLFOLDER]HexagonNPUSimCity.exe" WorkingDirectory="INSTALLFOLDER" />
           <RemoveFolder Id="RemoveShortcuts" On="uninstall" />
-          <RegistryValue Root="HKLM" Key="Software\HexagonNPUSimCity" Name="Installed" Type="integer" Value="1" KeyPath="yes" />
+          <RegistryValue Root="HKCU" Key="Software\HexagonNPUSimCity" Name="Installed" Type="integer" Value="1" KeyPath="yes" />
         </Component>
       </Directory>
     </StandardDirectory>
