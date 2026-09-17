@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
+    <title>Scene integration fixture</title>
+    <style>
+      html, body, #canvas-root { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+      body { background: #101719; }
+      canvas { display: block; }
+      #labels-root { position: absolute; inset: 0; pointer-events: none; }
+      .label { padding: 3px 5px; color: #e5eeee; background: #101719cc; font: 12px monospace; }
+    </style>
+  </head>
+  <body>
+    <div id="canvas-root"></div>
+    <div id="labels-root"></div>
+    <script type="module">
+      import * as THREE from 'three'
+      import { createRenderer } from '../../src/engine/renderer.ts'
+      import { createCameraRig } from '../../src/engine/camera.ts'
+      import { createFlows } from '../../src/engine/flows.ts'
+      import { createLabels } from '../../src/engine/labels.ts'
+      import { createPicker } from '../../src/engine/picker.ts'
+      import { createCity } from '../../src/world/city.ts'
+      import { districtById } from '../../src/world/districts.ts'
+      import { createSim } from '../../src/sim/model.ts'
+      import { createClock, FIXED_STEP } from '../../src/sim/clock.ts'
+
+      const root = document.getElementById('canvas-root')
+      const labelRoot = document.getElementById('labels-root')
+      const renderer = createRenderer(root)
+      const scene = new THREE.Scene()
+      scene.background = new THREE.Color(0x101719)
+      scene.fog = new THREE.Fog(0x101719, 110, 230)
+      scene.add(new THREE.HemisphereLight(0xffffff, 0x263238, 2.5))
+      const light = new THREE.DirectionalLight(0xffffff, 3)
+      light.position.set(25, 60, 35)
+      scene.add(light)
+      const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 500)
+      const rig = createCameraRig(camera, renderer.domElement)
+      if (innerWidth < 600) {
+        camera.fov = 65
+        camera.position.multiplyScalar(1.6)
+        camera.updateProjectionMatrix()
+        rig.controls.update()
+      }
+      const city = createCity()
+      const flows = createFlows()
+      scene.add(city.object, flows.object)
+      const labels = createLabels(labelRoot, scene)
+      for (const label of city.labels) {
+        const element = document.createElement('span')
+        element.className = 'label'
+        element.textContent = label.id
+        labels.add(element, label.position)
+      }
+      const sim = createSim()
+      let timestamp = 0
+      let selection = null
+      let hover = null
+      const picker = createPicker({
+        dom: renderer.domElement,
+        camera,
+        pickables: city.pickables,
+        onPick: (id) => { selection = id },
+        onHover: (id) => { hover = id },
+      })
+      const clock = createClock((dt) => {
+        sim.update(dt)
+        city.update(dt, sim.state)
+        flows.update(dt, sim.state)
+      })
+      clock.advance(0)
+
+      function render() {
+        rig.update(0)
+        renderer.render(scene, camera)
+        labels.render(scene, camera)
+      }
+
+      function resize() {
+        camera.aspect = innerWidth / innerHeight
+        camera.updateProjectionMatrix()
+        renderer.setSize(innerWidth, innerHeight)
+        labels.setSize(innerWidth, innerHeight)
+        render()
+      }
+      addEventListener('resize', resize)
+
+      window.engineTest = {
+        step(count = 1) {
+          for (let frame = 0; frame < count; frame++) {
+            timestamp += FIXED_STEP * 1000
+            clock.advance(timestamp, !sim.state.paused)
+          }
+          render()
+        },
+        pause() { sim.togglePause() },
+        setWorkload(id) { sim.setWorkload(id) },
+        setPrecision(value) { sim.setPrecision(value) },
+        state() { return structuredClone(sim.state) },
+        selection() { return selection },
+        hover() { return hover },
+        clearSelection() { selection = null },
+        project(id) {
+          const projected = districtById(id).pos.clone().setY(1).project(camera)
+          return { x: (projected.x + 1) * innerWidth / 2, y: (1 - projected.y) * innerHeight / 2 }
+        },
+        signature() {
+          render()
+          const context = renderer.getContext()
+          const width = context.drawingBufferWidth
+          const height = context.drawingBufferHeight
+          const pixels = new Uint8Array(width * height * 4)
+          context.readPixels(0, 0, width, height, context.RGBA, context.UNSIGNED_BYTE, pixels)
+          const colors = new Set()
+          let hash = 2166136261
+          for (let offset = 0; offset < pixels.length; offset += 64) {
+            colors.add((pixels[offset] << 16) | (pixels[offset + 1] << 8) | pixels[offset + 2])
+            hash = Math.imul(hash ^ pixels[offset], 16777619)
+            hash = Math.imul(hash ^ pixels[offset + 1], 16777619)
+            hash = Math.imul(hash ^ pixels[offset + 2], 16777619)
+          }
+          return { hash, colors: colors.size, width, height, error: context.getError() }
+        },
+        rendererInfo() {
+          return {
+            ratio: renderer.getPixelRatio(),
+            srgb: renderer.outputColorSpace === THREE.SRGBColorSpace,
+            filmic: renderer.toneMapping === THREE.ACESFilmicToneMapping,
+            shadows: renderer.shadowMap.enabled,
+            softShadows: renderer.shadowMap.type === THREE.PCFSoftShadowMap,
+            exposure: renderer.toneMappingExposure,
+            geometries: renderer.info.memory.geometries,
+            calls: renderer.info.render.calls,
+          }
+        },
+        dispose() {
+          removeEventListener('resize', resize)
+          picker.dispose()
+          rig.controls.dispose()
+          const resources = new Set()
+          scene.traverse((object) => {
+            if (object.geometry) resources.add(object.geometry)
+            for (const material of [object.material].flat().filter(Boolean)) resources.add(material)
+            if (object.isInstancedMesh) resources.add(object)
+          })
+          for (const resource of resources) resource.dispose()
+          scene.clear()
+          labelRoot.replaceChildren()
+          renderer.dispose()
+          renderer.domElement.remove()
+          return resources.size
+        },
+      }
+      window.engineTest.step(60)
+    </script>
+  </body>
+</html>

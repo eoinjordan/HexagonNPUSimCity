@@ -1,0 +1,40 @@
+:root {
+  /* Semantic colour tokens — mirror src/core/theme.ts COLOR values. */
+  --c-scalar: #4aa3ff;
+  --c-vector: #35d07f;
+  --c-tensor: #ffb020;
+  --c-vtcm: #9b6cff;
+  --c-activation: #22d3ee;
+  --c-weight: #ff8a3d;
+  --c-cpu: #8ab4ff;
+  --c-gpu: #ff5db1;
+  --c-sensors: #2dd4bf;
+
+  --bg: #05070e;
+  --panel: rgba(10, 16, 30, 0.82);
+  --panel-solid: #0a1020;
+  --stroke: rgba(120, 160, 220, 0.22);
+  --stroke-strong: rgba(120, 160, 220, 0.4);
+  --ink: #dbe7ff;
+  --ink-dim: #93a6c8;
+  --ink-faint: #5f7093;
+  --accent: #22d3ee;
+
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --mono: 'SF Mono', ui-monospace, 'Cascadia Code', 'JetBrains Mono', Menlo, Consolas, monospace;
+}
+
+:root[data-theme='day'] {
+  --bg: #cfe0ee;
+  --panel: rgba(244, 249, 255, 0.86);
+  --panel-solid: #eaf1fb;
+  --stroke: rgba(30, 60, 110, 0.18);
+  --stroke-strong: rgba(30, 60, 110, 0.32);
+  --ink: #17263f;
+  --ink-dim: #43597c;
+  --ink-faint: #7387a6;
+  --shadow: 0 10px 40px rgba(30, 50, 90, 0.18);
+}

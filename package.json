@@ -1,0 +1,53 @@
+{
+  "name": "hexagon-npu-simcity",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "An independent, non-commercial educational 3D visualization of the Qualcomm Hexagon NPU. Not affiliated with Qualcomm.",
+  "license": "Apache-2.0",
+  "homepage": "https://eoinjordan.github.io/HexagonNPUSimCity/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eoinjordan/HexagonNPUSimCity.git"
+  },
+  "keywords": [
+    "qualcomm",
+    "hexagon",
+    "npu",
+    "visualization",
+    "3d",
+    "threejs",
+    "ai-engine",
+    "on-device-ai",
+    "education",
+    "webgl"
+  ],
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4173",
+    "test": "node --import tsx --test \"src/**/*.test.mjs\"",
+    "test:coverage": "c8 --all --include='src/**/*.ts' --reporter=text --reporter=lcov npm test",
+    "test:browser": "playwright test",
+    "test:app": "npm run build && TEST_APP=1 playwright test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/three": "^0.185.0",
+    "c8": "^12.0.0",
+    "jsdom": "^29.1.1",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.5"
+  },
+  "dependencies": {
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/space-grotesk": "^5.3.0",
+    "lucide": "^1.47.0",
+    "three": "^0.185.0"
+  }
+}

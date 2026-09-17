@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.local
+.DS_Store
+.vite/
+npm-debug.log*
+yarn-error.log*
+/issues.md
+/coverage/
+/playwright-report/
+/test-results/

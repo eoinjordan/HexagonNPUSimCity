@@ -1,0 +1,15 @@
+export const COLOR = {
+  ground: 0x101719,
+  grid: 0x34464a,
+  bus: 0x42646b,
+  scalar: 0x4aa3ff,
+  vector: 0x35d07f,
+  tensor: 0xffb020,
+  vtcm: 0x9b6cff,
+  microtile: 0x22d3ee,
+  activation: 0x22d3ee,
+  weight: 0xff8a3d,
+  cpu: 0x8ab4ff,
+  gpu: 0xff5db1,
+  sensors: 0x2dd4bf,
+} as const

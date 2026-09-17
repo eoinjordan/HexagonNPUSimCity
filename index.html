@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en" data-theme="night">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta
+      name="description"
+      content="An independent, non-commercial educational 3D visualization of the Qualcomm Hexagon NPU. Not affiliated with Qualcomm."
+    />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#05070e" />
+    <title>HexagonNPUSimCity · How the Hexagon NPU Works, in 3D</title>
+
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="HexagonNPUSimCity" />
+    <meta property="og:title" content="HexagonNPUSimCity · How the Hexagon NPU Works, in 3D" />
+    <meta
+      property="og:description"
+      content="An explorable 3D model of the Qualcomm Hexagon NPU: scalar, vector and tensor accelerators fused around a shared memory, with a tensor you can watch flow through inference."
+    />
+  </head>
+  <body>
+    <!-- WebGL canvas + CSS2D label layer mount here -->
+    <div id="stage">
+      <div id="canvas-root"></div>
+      <div id="labels-root" aria-hidden="true"></div>
+    </div>
+
+    <!-- HUD layers, filled by src/ui/* -->
+    <div id="hud">
+      <header id="hud-top"></header>
+      <aside id="hud-left"></aside>
+      <aside id="hud-right"></aside>
+      <footer id="hud-bottom"></footer>
+      <div id="inspector"></div>
+      <div id="tour-layer"></div>
+      <div id="help-overlay" hidden></div>
+    </div>
+
+    <!-- Boot screen -->
+    <div id="boot">
+      <div class="boot-inner">
+        <div class="boot-mark">
+          <svg viewBox="0 0 100 100" width="84" height="84" role="img" aria-label="HexagonNPUSimCity">
+            <defs>
+              <linearGradient id="bg1" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#22d3ee" />
+                <stop offset="100%" stop-color="#9b6cff" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M50 4 L90.7 27.5 L90.7 72.5 L50 96 L9.3 72.5 L9.3 27.5 Z"
+              fill="rgba(7,13,24,.55)"
+              stroke="url(#bg1)"
+              stroke-width="2.6"
+            />
+            <path
+              d="M50 22 L72 34.5 L72 59.5 L50 72 L28 59.5 L28 34.5 Z"
+              fill="none"
+              stroke="url(#bg1)"
+              stroke-width="2.2"
+              opacity="0.85"
+            />
+            <circle cx="50" cy="47" r="6" fill="url(#bg1)" />
+          </svg>
+        </div>
+        <h1 class="boot-title">Hexagon<span>NPU</span>SimCity</h1>
+        <p class="boot-sub">A working model of the Qualcomm Hexagon NPU</p>
+        <p class="boot-legal">
+          Independent, non-commercial educational visualization. Not affiliated with, sponsored by, or endorsed by
+          Qualcomm. Hexagon, Snapdragon, Adreno and Oryon are trademarks of Qualcomm Incorporated. Figures shown are
+          illustrative, not datasheet values.
+        </p>
+        <div class="boot-bar"><i id="boot-fill" style="width: 4%"></i></div>
+        <p class="boot-status" id="boot-status">loading the NPU…</p>
+      </div>
+    </div>
+
+    <noscript>
+      <div style="min-height: 100%; padding: 2rem; font: 16px system-ui; color: #dbe7ff; background: #05070e">
+        HexagonNPUSimCity needs JavaScript and WebGL2 to run.
+      </div>
+    </noscript>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

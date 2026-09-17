@@ -1,0 +1,33 @@
+HexagonNPUSimCity
+Copyright 2026 Eoin Jordan and contributors
+
+This product includes software developed as an independent, non-commercial
+educational visualization of the Qualcomm(R) Hexagon(TM) NPU.
+
+TRADEMARKS AND AFFILIATION
+--------------------------
+This project is NOT affiliated with, sponsored by, endorsed by, or approved by
+Qualcomm Incorporated or Qualcomm Technologies, Inc.
+
+Qualcomm, Snapdragon, Hexagon, Adreno, and Oryon are trademarks or registered
+trademarks of Qualcomm Incorporated and/or its subsidiaries. All trademarks are
+the property of their respective owners and are used here only for identification
+and educational description.
+
+"SimCity" is a trademark of Electronic Arts Inc. This project is not affiliated
+with Electronic Arts Inc. The name pattern is used to describe the genre of an
+explorable, city-style simulation and nothing more.
+
+MODEL DISCLAIMER
+----------------
+The numbers, timings, utilisation figures and throughput shown in this project
+are ILLUSTRATIVE and scaled to make the architecture observable. They are a
+teaching model, not measurements of any specific Hexagon NPU, Snapdragon
+platform, or silicon. Do not cite them as datasheet values.
+
+ATTRIBUTION
+-----------
+Inspired by PGSimCity by Nikolay Samokhvalov (https://github.com/NikolayS/PGSimCity),
+an educational 3D visualization of PostgreSQL internals.
+
+This software is licensed under the Apache License, Version 2.0. See LICENSE.
