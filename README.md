@@ -20,6 +20,9 @@ Press `T` to follow one inference through the fused pipeline — the camera glid
 
 ![Guided tour gliding between the VTCM, scalar, HVX and HMX districts](docs/media/tour.gif)
 
+<img width="1464" height="779" alt="image" src="https://github.com/user-attachments/assets/0071aecc-552a-451d-8658-1ae4b6670ccc" />
+
+
 
 > **Independent & non-commercial.** Not affiliated with, sponsored by, or endorsed
 > by Qualcomm. Hexagon, Snapdragon, Adreno and Oryon are trademarks of Qualcomm
