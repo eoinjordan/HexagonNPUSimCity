@@ -8,6 +8,7 @@ export type BusEvents = {
   'camera:home': void
   'tour:toggle': void
   'help:toggle': void
+  'settings:toggle': void
   'pause:toggle': void
   'theme:toggle': void
   'overlay:dismiss': void

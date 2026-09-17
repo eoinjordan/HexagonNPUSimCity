@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
@@ -12,13 +13,118 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
       - run: npm ci
+      - id: version
+        run: node tools/release.mjs --version-output
+      - run: npm audit --audit-level=high
       - run: npm run typecheck
-      - run: npm test
-      - run: npm run build
+      - run: npm run test:coverage
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+      - run: npm run test:app
+      - run: node tools/model.mjs
+      - uses: actions/upload-artifact@v7
+        with:
+          name: native-assets
+          path: |
+            dist/
+            native/models/
+          if-no-files-found: error
+      - name: Package web build
+        run: |
+          mkdir -p release/web
+          cd dist
+          zip -r ../release/web/HexagonNPUSimCity-web.zip .
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-web
+          path: release/web/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: quality-reports
+          path: |
+            coverage/
+            playwright-report/
+            test-results/
+          retention-days: 14
+
+  android:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: native-assets
+          path: .
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '8.13'
+      - name: Build and test Android preview
+        env:
+          APP_VERSION: ${{ needs.verify.outputs.version }}
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: gradle -p native/android --no-daemon --console=plain "-PversionName=$APP_VERSION" "-PversionCode=$BUILD_NUMBER" testDebugUnitTest lintDebug assembleDebug
+      - name: Name CPU preview explicitly
+        run: |
+          mkdir -p release/android
+          cp native/android/app/build/outputs/apk/debug/app-debug.apk release/android/HexagonNPUSimCity-arm64-cpu-preview.apk
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-android
+          path: release/android/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: android-test-reports
+          path: native/android/app/build/reports/
+          retention-days: 14
+
+  windows:
+    needs: verify
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: native-assets
+          path: .
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet test native/windows/tests/Native.Tests.csproj -c Release -p:RestoreLockedMode=true
+      - name: Publish Windows ARM64
+        env:
+          APP_VERSION: ${{ needs.verify.outputs.version }}
+        run: dotnet publish native/windows/HexagonNPUSimCity.csproj -c Release -r win-arm64 --self-contained true -o native/windows/publish -p:RestoreLockedMode=true -p:Version=$env:APP_VERSION
+      - name: Verify QNN payload and package MSI
+        env:
+          APP_VERSION: ${{ needs.verify.outputs.version }}
+        shell: pwsh
+        run: |
+          if (!(Test-Path native/windows/publish/QnnHtp.dll)) { throw 'QNN HTP backend missing from ARM64 package' }
+          dotnet build native/windows/installer/Installer.wixproj -c Release -o "$env:GITHUB_WORKSPACE/release/windows" -p:Version=$env:APP_VERSION
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-windows
+          path: release/windows/*.msi
+          if-no-files-found: error

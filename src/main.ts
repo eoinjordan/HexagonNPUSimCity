@@ -15,6 +15,7 @@ import { createPicker } from './engine/picker'
 
 import { createSim } from './sim/model'
 import { createClock } from './sim/clock'
+import { createRuntimePanel } from './runtime/panel'
 
 import { createCity } from './world/city'
 import { districtById } from './world/districts'
@@ -24,6 +25,7 @@ import { createInspector } from './ui/panel'
 import { createTour } from './ui/tour'
 import { createHelp } from './ui/help'
 import { createControls } from './ui/controls'
+import { createSettings } from './ui/settings'
 import { el } from './ui/dom'
 
 /* ============================================================================
@@ -121,7 +123,11 @@ scene.add(flows.object)
 for (const l of city.labels) {
   const parts = l.name.split('·')
   const div = el('div', { class: 'label' })
-  div.innerHTML = `<b>${parts[0].trim()}</b>${parts[1] ? ` ${parts[1].trim()}` : ''}`
+  const shortNames: Record<DistrictId, string> = { vtcm: 'VTCM', scalar: 'Scalar', vector: 'HVX', tensor: 'HMX', microtile: 'Tiles', cpu: 'CPU', gpu: 'GPU', sensors: 'Sensing' }
+  div.append(
+    el('span', { class: 'label-full', html: `<b>${parts[0].trim()}</b>${parts[1] ? ` ${parts[1].trim()}` : ''}` }),
+    el('span', { class: 'label-short', text: shortNames[l.id] }),
+  )
   labels.add(div, l.position)
 }
 labels.add(el('div', { class: 'label label-ctx', text: 'System memory' }), new THREE.Vector3(0, 4.4, -46))
@@ -134,6 +140,8 @@ const hud = createHud({ bus, initial: sim.state })
 const inspector = createInspector(bus)
 const tour = createTour(bus)
 const help = createHelp(bus)
+const settings = createSettings(bus, sim)
+createRuntimePanel(document.getElementById('hud')!)
 
 // A ring that sits under the selected district.
 const ringMat = new THREE.MeshStandardMaterial({
@@ -188,6 +196,7 @@ bus.on('theme:toggle', () => {
   applyTheme()
 })
 bus.on('help:toggle', () => help.toggle())
+bus.on('settings:toggle', () => settings.toggle())
 bus.on('tour:toggle', () => tour.toggle())
 bus.on('reset', () => {
   sim.reset()
@@ -201,7 +210,8 @@ bus.on('reset', () => {
 })
 
 createControls(bus, () => {
-  if (help.open) help.close()
+  if (settings.open) settings.close()
+  else if (help.open) help.close()
   else if (tour.active) tour.stop()
   else deselect()
 })

@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import type { DistrictDef, SimState } from '../core/types'
+import { makeRng } from '../core/util'
 import { DistrictBuild, districtGroup, glow, roundedBox, surface } from './build'
 
 /**
@@ -10,6 +11,7 @@ import { DistrictBuild, districtGroup, glow, roundedBox, surface } from './build
  */
 export function createSensors(def: DistrictDef): DistrictBuild {
   const group = districtGroup(def)
+  const rng = makeRng(0x53454e53)
 
   const pad = new THREE.Mesh(roundedBox(8, 0.4, 8, 0.3), surface(def.color, { emissiveIntensity: 0.12, roughness: 0.7 }))
   pad.position.y = 0.2
@@ -26,7 +28,7 @@ export function createSensors(def: DistrictDef): DistrictBuild {
     [0, 0],
   ]
   for (const [x, z] of spots) {
-    const h = 1.4 + Math.random() * 0.8
+    const h = 1.4 + rng() * 0.8
     const p = new THREE.Mesh(roundedBox(1.1, h, 1.1, 0.2), pillarMat.clone())
     p.position.set(x, 0.4 + h / 2, z)
     p.castShadow = true

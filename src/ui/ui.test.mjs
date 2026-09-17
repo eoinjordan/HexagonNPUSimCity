@@ -88,7 +88,7 @@ test('HUD lists every workload, precision and district without duplicating on re
   for (const district of DISTRICTS) assert.ok(document.getElementById('hud-right').textContent.includes(district.name))
   createHud({ bus, initial: sim.state })
   assert.equal(document.querySelectorAll('#hud-top select').length, 2)
-  assert.equal(document.querySelectorAll('#hud-left .tool').length, 5)
+  assert.equal(document.querySelectorAll('#hud-left .tool').length, 6)
   assert.equal(document.querySelectorAll('#hud-bottom .metric').length, 4)
 })
 
@@ -116,7 +116,7 @@ test('HUD keeps the illustrative qualifier next to metrics and labels both selec
 test('HUD toolbar and district legend dispatch the expected action contracts', (context) => {
   const { document, bus } = fixture(context)
   const received = []
-  const events = ['tour:toggle', 'pause:toggle', 'camera:home', 'theme:toggle', 'help:toggle']
+  const events = ['tour:toggle', 'pause:toggle', 'camera:home', 'theme:toggle', 'help:toggle', 'settings:toggle']
   for (const event of events) bus.on(event, () => received.push(event))
   for (const tool of document.querySelectorAll('#hud-left .tool')) tool.click()
   assert.deepEqual(received, events)

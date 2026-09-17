@@ -30,8 +30,11 @@ export function createScalar(def: DistrictDef): DistrictBuild {
   ring.position.y = y + 0.6
   group.add(ring)
 
+  let previousTime = 0
   function update(dt: number, s: SimState): void {
-    ring.rotation.z += dt * (0.4 + s.util.scalar * 5)
+    if (s.t < previousTime || s.t === 0) ring.rotation.z = 0
+    if (s.t > previousTime) ring.rotation.z += dt * (0.4 + s.util.scalar * 5)
+    previousTime = s.t
     ringMat.emissiveIntensity = 0.4 + s.util.scalar * 1.4
   }
 

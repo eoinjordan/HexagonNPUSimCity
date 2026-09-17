@@ -30,7 +30,7 @@ function easeInOut(x: number): number {
 
 export function createCameraRig(camera: THREE.PerspectiveCamera, dom: HTMLElement): CameraRig {
   const homePosition = () => HOME_TARGET.clone().add(
-    HOME_POS.clone().sub(HOME_TARGET).multiplyScalar(Math.max(1, 0.85 / camera.aspect)),
+    HOME_POS.clone().sub(HOME_TARGET).multiplyScalar(camera.aspect < 1 ? 1.15 / camera.aspect : 1),
   )
   const controls = new OrbitControls(camera, dom)
   controls.enableDamping = true
@@ -65,6 +65,7 @@ export function createCameraRig(camera: THREE.PerspectiveCamera, dom: HTMLElemen
   }
 
   function home(): void {
+    controls.maxDistance = Math.max(170, homePosition().distanceTo(HOME_TARGET))
     glide(homePosition(), HOME_TARGET)
   }
 

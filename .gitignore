@@ -9,3 +9,13 @@ yarn-error.log*
 /coverage/
 /playwright-report/
 /test-results/
+/native/models/
+**/bin/
+**/obj/
+**/.gradle/
+**/build/
+**/local.properties
+**/*.jks
+**/*.keystore
+/native/windows/publish/
+/release/

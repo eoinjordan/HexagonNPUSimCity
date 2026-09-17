@@ -70,7 +70,7 @@ export function createHud(deps: HudDeps): Hud {
   )
 
   /* ---- left toolbar ---- */
-  type VoidEvent = 'tour:toggle' | 'camera:home' | 'theme:toggle' | 'help:toggle'
+  type VoidEvent = 'tour:toggle' | 'camera:home' | 'theme:toggle' | 'help:toggle' | 'settings:toggle'
   const tool = (glyph: string, label: string, ev: VoidEvent) =>
     el('button', { class: 'tool', title: label, 'aria-label': label, onclick: () => bus.emit(ev, undefined) }, [
       document.createTextNode(glyph),
@@ -85,8 +85,7 @@ export function createHud(deps: HudDeps): Hud {
     pauseTool,
     tool('⌂', 'Establishing shot (H)', 'camera:home'),
     tool('◐', 'Day / night (N)', 'theme:toggle'),
-    tool('?', 'Keys & legend (?)', 'help:toggle'),
-  )
+    tool('?', 'Keys & legend (?)', 'help:toggle'),    tool('⚙', 'Settings — tune the figures', 'settings:toggle'),  )
 
   /* ---- right legend ---- */
   const legend = el('div', { class: 'card' }, [el('h3', { text: 'Districts' })])

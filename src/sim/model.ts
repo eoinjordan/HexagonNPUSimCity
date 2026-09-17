@@ -1,4 +1,12 @@
-import type { Precision, Sim, SimState, WorkloadDef, WorkloadId } from '../core/types.ts'
+import type {
+  Precision,
+  Sim,
+  SimConfig,
+  SimConfigPatch,
+  SimState,
+  WorkloadDef,
+  WorkloadId,
+} from '../core/types.ts'
 import { approach, clamp01, makeRng } from '../core/util.ts'
 
 /**
@@ -17,41 +25,53 @@ export const WORKLOADS: WorkloadDef[] = [
 
 export const PRECISIONS: Precision[] = ['INT4', 'INT8', 'INT16', 'FP16']
 
-/** Illustrative peak tensor throughput (TOPS) by numeric format. */
-const PEAK_TOPS: Record<Precision, number> = {
-  INT4: 80,
-  INT8: 45,
-  INT16: 22,
-  FP16: 20,
+/**
+ * The reviewed, ILLUSTRATIVE figures the model runs on. These are the defaults;
+ * the settings drawer tunes a live copy, but leaving them alone reproduces the
+ * values documented in docs/verification.md exactly.
+ */
+export const DEFAULT_SIM_CONFIG: SimConfig = {
+  peakTops: { INT4: 80, INT8: 45, INT16: 22, FP16: 20 },
+  tokenCeil: { INT4: 95, INT8: 62, INT16: 34, FP16: 30 },
+  workloads: {
+    'llm-decode': { scalar: 0.35, vector: 0.5, tensor: 0.82, vtcm: 0.72, tokenScale: 1, microTiles: 640 },
+    'vision-conv': { scalar: 0.24, vector: 0.72, tensor: 0.92, vtcm: 0.8, tokenScale: 0, microTiles: 900 },
+    idle: { scalar: 0.06, vector: 0.05, tensor: 0.04, vtcm: 0.12, tokenScale: 0, microTiles: 40 },
+  },
+  power: { base: 0.4, scalar: 0.6, vector: 1.1, tensor: 2.4 },
+  supportedOpsets: [13, 17, 19, 21],
 }
 
-/** Illustrative on-device generative decode ceiling (tokens/s) by format. */
-const TOKEN_CEIL: Record<Precision, number> = {
-  INT4: 95,
-  INT8: 62,
-  INT16: 34,
-  FP16: 30,
+function cloneConfig(c: SimConfig): SimConfig {
+  return {
+    peakTops: { ...c.peakTops },
+    tokenCeil: { ...c.tokenCeil },
+    workloads: {
+      'llm-decode': { ...c.workloads['llm-decode'] },
+      'vision-conv': { ...c.workloads['vision-conv'] },
+      idle: { ...c.workloads.idle },
+    },
+    power: { ...c.power },
+    supportedOpsets: [...c.supportedOpsets],
+  }
 }
 
-interface Targets {
-  scalar: number
-  vector: number
-  tensor: number
-  vtcm: number
-  /** 0..1 scale on the format's token ceiling; 0 for non-generative work. */
-  tokenScale: number
-  /** Baseline resident micro-tiles for this workload. */
-  microTiles: number
-}
-
-const TARGETS: Record<WorkloadId, Targets> = {
-  'llm-decode': { scalar: 0.35, vector: 0.5, tensor: 0.82, vtcm: 0.72, tokenScale: 1, microTiles: 640 },
-  'vision-conv': { scalar: 0.24, vector: 0.72, tensor: 0.92, vtcm: 0.8, tokenScale: 0, microTiles: 900 },
-  idle: { scalar: 0.06, vector: 0.05, tensor: 0.04, vtcm: 0.12, tokenScale: 0, microTiles: 40 },
+function applyConfigPatch(c: SimConfig, patch: SimConfigPatch): void {
+  if (patch.peakTops) Object.assign(c.peakTops, patch.peakTops)
+  if (patch.tokenCeil) Object.assign(c.tokenCeil, patch.tokenCeil)
+  if (patch.power) Object.assign(c.power, patch.power)
+  if (patch.supportedOpsets) c.supportedOpsets = [...patch.supportedOpsets]
+  if (patch.workloads) {
+    for (const id of Object.keys(patch.workloads) as WorkloadId[]) {
+      const profile = patch.workloads[id]
+      if (profile) Object.assign(c.workloads[id], profile)
+    }
+  }
 }
 
 export function createSim(): Sim {
   let rng = makeRng(0x4858)
+  const config = cloneConfig(DEFAULT_SIM_CONFIG)
 
   const state: SimState = {
     t: 0,
@@ -73,10 +93,11 @@ export function createSim(): Sim {
   }
 
   function refreshMetrics(): void {
-    state.tops = PEAK_TOPS[state.precision] * state.util.tensor
-    state.tokensPerSec = TOKEN_CEIL[state.precision] * TARGETS[state.workload].tokenScale * state.util.tensor
-    const work = state.util.scalar * 0.6 + state.util.vector * 1.1 + state.util.tensor * 2.4
-    state.powerWatts = 0.4 + work
+    const w = config.workloads[state.workload]
+    state.tops = config.peakTops[state.precision] * state.util.tensor
+    state.tokensPerSec = config.tokenCeil[state.precision] * w.tokenScale * state.util.tensor
+    const p = config.power
+    state.powerWatts = p.base + state.util.scalar * p.scalar + state.util.vector * p.vector + state.util.tensor * p.tensor
   }
 
   function update(dt: number): void {
@@ -84,7 +105,7 @@ export function createSim(): Sim {
     dt = Math.min(dt, 0.1)
     state.t += dt
 
-    const tgt = TARGETS[state.workload]
+    const tgt = config.workloads[state.workload]
     const rate = 2.2 // how fast utilisation chases its target
     state.util.scalar = approach(state.util.scalar, jitter(tgt.scalar, 0.4), rate, dt)
     state.util.vector = approach(state.util.vector, jitter(tgt.vector, 1.9), rate, dt)
@@ -108,6 +129,13 @@ export function createSim(): Sim {
     },
     togglePause() {
       state.paused = !state.paused
+    },
+    configure(patch) {
+      applyConfigPatch(config, patch)
+      refreshMetrics()
+    },
+    getConfig() {
+      return cloneConfig(config)
     },
     reset() {
       rng = makeRng(0x4858)

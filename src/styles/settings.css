@@ -1,0 +1,174 @@
+/* Settings drawer — the toolbar cog opens this. Docked right so the scene stays
+   visible while you change figures. Uses the shared tokens from tokens.css. */
+
+.settings-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(360px, 92vw);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px 24px;
+  overflow-y: auto;
+  color: var(--ink);
+  background: var(--panel-solid);
+  border-left: 1px solid var(--stroke-strong);
+  box-shadow: -14px 0 46px rgba(0, 0, 0, 0.45);
+  transform: translateX(100%);
+  transition: transform 0.24s ease;
+}
+
+.settings-drawer.open {
+  transform: none;
+}
+
+:root[data-theme='day'] .settings-drawer {
+  box-shadow: -14px 0 46px rgba(30, 50, 90, 0.18);
+}
+
+.settings-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  padding-bottom: 4px;
+  background: var(--panel-solid);
+}
+
+.settings-title {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.settings-close {
+  background: none;
+  border: 0;
+  color: var(--ink-faint);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.settings-close:hover {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.settings-note {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+  margin: 2px 0 4px;
+}
+
+.settings-section {
+  border-top: 1px solid var(--stroke);
+  padding: 12px 0 4px;
+}
+
+.settings-section h4 {
+  margin: 0 0 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-dim);
+}
+
+.settings-hint {
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: var(--ink-faint);
+  margin: -3px 0 9px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.settings-label {
+  flex: 1;
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.settings-val {
+  width: 44px;
+  text-align: right;
+  font: 600 11.5px/1 var(--mono);
+  color: var(--accent);
+}
+
+.settings-row--slider input[type='range'] {
+  flex: 1.3;
+  min-width: 90px;
+}
+
+.settings-drawer input[type='number'] {
+  width: 84px;
+  font-family: var(--font);
+  font-size: 12.5px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--stroke-strong);
+  border-radius: 6px;
+  padding: 5px 7px;
+}
+
+.settings-drawer input[type='range'] {
+  accent-color: var(--accent);
+}
+
+.settings-drawer input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.settings-opsets {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.settings-opset {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font: 600 12px/1 var(--mono);
+  color: var(--ink);
+  padding: 6px 4px;
+  border: 1px solid var(--stroke);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.settings-opset:hover {
+  border-color: var(--accent);
+}
+
+.settings-opset input {
+  accent-color: var(--accent);
+}
+
+.settings-summary {
+  font: 600 11px/1.4 var(--mono);
+  color: var(--accent);
+  margin: 9px 0 0;
+}
+
+.settings-foot {
+  border-top: 1px solid var(--stroke);
+  margin-top: 10px;
+  padding-top: 12px;
+}

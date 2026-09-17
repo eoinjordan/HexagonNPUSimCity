@@ -29,10 +29,12 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview --port 4173",
-    "test": "node --import tsx --test \"src/**/*.test.mjs\"",
+    "test": "node --import tsx --test \"src/**/*.test.mjs\" \"tools/*.test.mjs\"",
     "test:coverage": "c8 --all --include='src/**/*.ts' --reporter=text --reporter=lcov npm test",
     "test:browser": "playwright test",
     "test:app": "npm run build && TEST_APP=1 playwright test",
+    "native:prepare": "node tools/model.mjs && npm run build",
+    "runtime": "node --import tsx tools/runtime-server.mjs",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
@@ -40,9 +42,16 @@
     "@types/three": "^0.185.0",
     "c8": "^12.0.0",
     "jsdom": "^29.1.1",
+    "onnx-proto": "^8.0.1",
+    "onnxruntime-node": "^1.30.0",
     "tsx": "^4.23.13",
     "typescript": "^5.9.2",
     "vite": "^7.1.5"
+  },
+  "overrides": {
+    "onnx-proto": {
+      "protobufjs": "8.8.0"
+    }
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",

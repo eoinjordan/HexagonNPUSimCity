@@ -616,7 +616,109 @@ kbd {
   margin-top: 20px;
 }
 
+.runtime-panel {
+  position: absolute;
+  top: 82px;
+  left: 76px;
+  width: min(300px, calc(100% - 90px));
+  max-height: calc(100% - 250px);
+  overflow: auto;
+  pointer-events: auto;
+  background: var(--panel-solid);
+  color: var(--ink);
+  border: 1px solid var(--stroke);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.runtime-panel summary {
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.runtime-fields {
+  display: grid;
+  gap: 10px;
+  padding: 0 12px 12px;
+}
+
+.runtime-fields label {
+  display: grid;
+  gap: 4px;
+}
+
+.runtime-fields input,
+.runtime-fields select {
+  width: 100%;
+  min-width: 0;
+  padding: 6px;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--stroke-strong);
+  border-radius: 4px;
+}
+
+.runtime-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.runtime-status {
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+.label-short {
+  display: none;
+}
+
 @media (max-width: 720px) {
+  #hud-top {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 6px;
+  }
+  #hud-top .brand {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+  #hud-top .spacer {
+    display: none;
+  }
+  #hud-top .control-group {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+  }
+  #hud-top select {
+    min-width: 0;
+    width: 100%;
+  }
+  #hud-left {
+    top: auto;
+    bottom: 124px;
+    left: 14px;
+    right: 14px;
+    transform: none;
+    flex-direction: row;
+    justify-content: center;
+  }
+  .runtime-panel {
+    top: 140px;
+    left: 14px;
+    width: calc(100% - 28px);
+    max-height: calc(100% - 280px);
+  }
+  .label-full,
+  .label-ctx {
+    display: none;
+  }
+  .label-short {
+    display: inline;
+    font-size: 10px;
+    letter-spacing: 0;
+  }
   .metrics {
     gap: 6px 10px;
     padding: 10px 12px;

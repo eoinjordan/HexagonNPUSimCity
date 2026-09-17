@@ -4,9 +4,11 @@ Reviewed against public sources on 2026-09-17.
 
 ## Verification Boundary
 
-This project is a generic educational visualization, not a Hexagon emulator or
-an inference runtime. It does not load a trained network, calibrate activations,
-compile QNN kernels, or run on a Qualcomm device. Passing browser and arithmetic
+The city is a generic educational visualization, not a Hexagon emulator. Its
+simulation does not load a trained network or calibrate activations. Optional
+[native shells](native.md) execute a separate tiny QDQ arithmetic sample through
+ONNX Runtime, with explicit CPU/QNN selection; no Qualcomm device was available
+for validation in this review. Passing browser and arithmetic
 tests does **not** establish real model accuracy, NPU utilization, latency, power,
 or universal support for a numeric format.
 
@@ -132,6 +134,10 @@ npm run test:app
 `test:app` builds the actual app and tests it from a production preview under a
 GitHub Pages-style subdirectory. Both cover desktop and high-DPI mobile views.
 Neither executes Qualcomm NPU instructions.
+
+Native CPU output-oracle tests are separate from these browser suites. Native
+HTP execution requires a supported device/runtime and is not certified by a
+successful desktop cross-build or Android APK build.
 
 Actual quantized-model validation requires a chosen device and runtime, a known
 model and representative calibration/evaluation data, float-versus-quantized

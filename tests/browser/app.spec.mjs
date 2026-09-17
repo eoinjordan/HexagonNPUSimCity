@@ -2,7 +2,9 @@ import { test, expect } from '@playwright/test'
 import { createHash } from 'node:crypto'
 
 async function canvasHash(canvas) {
-  return createHash('sha256').update(await canvas.screenshot()).digest('hex')
+  return createHash('sha256').update(await canvas.screenshot({
+    style: '#hud, #boot, .label { visibility: hidden !important; }',
+  })).digest('hex')
 }
 
 test.beforeEach(async ({ page }) => {
@@ -34,6 +36,12 @@ test('production build boots under a Pages subdirectory with usable controls and
     return rect.left < -1 || rect.right > innerWidth + 1 || rect.top < -1 || rect.bottom > innerHeight + 1
   }).map((element) => element.getAttribute('aria-label') || element.textContent))
   expect(overflow).toEqual([])
+  const occluded = await page.locator('#hud-top select, #hud-left button').evaluateAll((elements) => elements.filter((element) => {
+    const rect = element.getBoundingClientRect()
+    const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)
+    return !hit || !element.contains(hit)
+  }).map((element) => element.getAttribute('aria-label')))
+  expect(occluded).toEqual([])
   await page.screenshot({ path: testInfo.outputPath('app.png') })
 })
 
@@ -56,7 +64,7 @@ test('production controls change workload and precision and keyboard pause freez
 })
 
 test('toolbar is keyboard-operable and reduced motion leaves the scene stable', async ({ page }) => {
-  await expect(page.locator('#hud-left').getByRole('button')).toHaveCount(5)
+  await expect(page.locator('#hud-left').getByRole('button')).toHaveCount(6)
   const firstTool = page.locator('#hud-left').getByRole('button').first()
   await firstTool.focus()
   await page.keyboard.press('Enter')

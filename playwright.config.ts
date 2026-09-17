@@ -13,7 +13,7 @@ export default defineConfig({
   workers: 1,
   forbidOnly: Boolean(process.env.CI),
   retries: 0,
-  timeout: 30_000,
+  timeout: app ? 60_000 : 30_000,
   reporter: [['list'], ['html', { open: 'never', outputFolder: `playwright-report/${app ? 'app' : 'engine'}` }]],
   use: {
     baseURL,

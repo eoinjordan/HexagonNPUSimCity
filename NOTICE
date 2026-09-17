@@ -20,10 +20,14 @@ explorable, city-style simulation and nothing more.
 
 MODEL DISCLAIMER
 ----------------
-The numbers, timings, utilisation figures and throughput shown in this project
+The simulation numbers, timings, utilisation figures and throughput shown in this project
 are ILLUSTRATIVE and scaled to make the architecture observable. They are a
 teaching model, not measurements of any specific Hexagon NPU, Snapdragon
 platform, or silicon. Do not cite them as datasheet values.
+
+Optional native arithmetic runs and local-runtime timings are separately labelled
+measurements. They are not measurements of the city's synthetic per-engine
+utilization, TOPS or power, and do not establish trained-model accuracy.
 
 ATTRIBUTION
 -----------

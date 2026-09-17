@@ -134,3 +134,24 @@ test('animation changes the world, while zero elapsed time and frozen state pres
   city.update(0, sim.state)
   assert.deepEqual(snapshotScene(city.object), paused)
 })
+
+test('reset restores and replays all world animations, including scalar rotation', (context) => {
+  const city = createCity()
+  const sim = createSim()
+  context.after(() => disposeScene(city.object))
+  city.update(0, sim.state)
+  const initial = snapshotScene(city.object)
+  const advance = () => {
+    for (let step = 0; step < 60; step++) {
+      sim.update(1 / 60)
+      city.update(1 / 60, sim.state)
+    }
+  }
+  advance()
+  const firstRun = snapshotScene(city.object)
+  sim.reset()
+  city.update(0, sim.state)
+  assert.deepEqual(snapshotScene(city.object), initial)
+  advance()
+  assert.deepEqual(snapshotScene(city.object), firstRun)
+})

@@ -17,6 +17,23 @@ No installation to explore — it runs in a browser with WebGL2.
 Inspired by [PGSimCity](https://github.com/NikolayS/PGSimCity), which does the
 same thing for PostgreSQL.
 
+## Native and measured runtimes
+
+Android ARM64 and Windows ARM64 shells can run a small, output-checked ONNX
+arithmetic workload with explicit CPU/QNN selection. The default Android preview
+is CPU-only; a QNN-enabled build requires matching SDK libraries. Windows has a
+QNN-backed build and MSI packaging workflow. Actual Snapdragon execution and MSI
+installation still require target-device verification.
+
+Ollama, llama.cpp and LM Studio adapters provide separate measured timings through
+an opt-in local service, never inferred NPU utilization. See the
+[native and runtime guide](docs/native.md) for build commands, release automation,
+security boundaries and limitations.
+
+Android example source:
+[edgeimpulse/example-android-inferencing](https://github.com/edgeimpulse/example-android-inferencing)
+and its [QNN example](https://github.com/edgeimpulse/example-android-inferencing/tree/main/qnn-hardware-acceleration).
+
 ## See it in motion
 
 > Recorded from the running app. Everything on screen is **illustrative** (a teaching model), not a hardware measurement.
@@ -94,10 +111,12 @@ the token rate change, or run the **Vision / conv** workload and watch HMX light
 
 ## How much to trust this
 
-This is a **model, not an emulator**. The 3D city, the utilisation bars and the
+The city is a **model, not an emulator**. The 3D city, the utilisation bars and the
 throughput figures are scaled to make the architecture observable. The simulation
 is a small deterministic behaviour model (`src/sim/`); it does not execute any real
-Hexagon workload and its numbers should not be cited as performance data.
+Hexagon workload and its numbers should not be cited as performance data. Optional
+native workload and local-runtime measurements are separately labelled and are
+not used to claim measured values for the city's utilization or power meters.
 
 Architecture background is drawn from Qualcomm's public description of the Hexagon
 NPU (fused scalar + vector + tensor accelerators, a large shared memory, and
