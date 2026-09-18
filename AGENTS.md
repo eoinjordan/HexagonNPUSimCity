@@ -5,8 +5,9 @@ explorable 3D model of the Qualcomm® Hexagon™ NPU. Live:
 <https://eoinjordan.github.io/HexagonNPUSimCity/>
 
 This file is the single source of truth for how to build, test, and extend the
-project. `CONTRIBUTING.md`, `CLAUDE.md`, and `.github/copilot-instructions.md`
-all defer here.
+project. It is a generic `AGENTS.md` — the convention read by coding agents
+across tools — so there are no vendor-specific variants to keep in sync.
+`CONTRIBUTING.md` and `README.md` defer here.
 
 ---
 
