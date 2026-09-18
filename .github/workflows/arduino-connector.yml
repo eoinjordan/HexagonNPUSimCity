@@ -1,0 +1,24 @@
+name: Arduino connector
+
+# Tests the Arduino App Lab connector (Python side). Scoped to arduino/** so it
+# never interferes with the web app's CI or the Pages deploy.
+on:
+  push:
+    paths:
+      - 'arduino/**'
+      - '.github/workflows/arduino-connector.yml'
+  pull_request:
+    paths:
+      - 'arduino/**'
+      - '.github/workflows/arduino-connector.yml'
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run connector tests (model + HTTP smoke)
+        run: python -m unittest discover -s arduino/tests -p 'test_*.py' -v

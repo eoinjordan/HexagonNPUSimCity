@@ -1,0 +1,16 @@
+# app.yaml: The main configuration file for your Arduino App.
+# This file describes the application's metadata and properties.
+
+# The user-visible name of the application.
+name: HexagonNPUCity
+
+# The icon for the application, can be an emoji or a short string.
+icon: 💠
+
+# A list of network ports that the application exposes.
+# The connector serves the 3D Hexagon NPU sim over HTTP on this port.
+ports: [7080]
+
+# A list of bricks used by this application.
+# The connector is standard-library only, so it needs none.
+bricks: []

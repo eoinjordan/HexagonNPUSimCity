@@ -1,0 +1,11 @@
+# sketch.yaml — configuration for the MCU sketch.
+#
+# Arduino App Lab manages this file for you: when you open the app and add the
+# board / a sketch library from the UI, App Lab fills in the correct values.
+# The entries below are a best-effort default for the Arduino UNO Q (Zephyr).
+#
+# The Bridge library (Arduino_RouterBridge) ships with the UNO Q Zephyr core, so
+# it usually needs no explicit "libraries" entry. If your App Lab version asks
+# for it, add it via the Sketch Library Manager and this file will update.
+
+default_fqbn: arduino:zephyr:unoq

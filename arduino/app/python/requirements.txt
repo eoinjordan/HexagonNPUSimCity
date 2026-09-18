@@ -1,0 +1,8 @@
+# Python dependencies for the HexagonNPUCity connector.
+#
+# The connector deliberately uses only the Python standard library and the
+# on-device `arduino.app_utils` runtime (provided by Arduino App Lab), so there
+# are no third-party packages to install here.
+#
+# Add one package per line if you extend the connector (App Lab installs them
+# with `uv` when the App starts). Keep this file inside the `python/` folder.
