@@ -49,7 +49,7 @@ Android example source:
 [edgeimpulse/example-android-inferencing](https://github.com/edgeimpulse/example-android-inferencing)
 and its [QNN example](https://github.com/edgeimpulse/example-android-inferencing/tree/main/qnn-hardware-acceleration).
 
-### Linux / Raspberry Pi package
+### Linux / VentuinoQ / Rubik Pi package
 
 Releases include a Debian package, `HexagonNPUSimCity-all.deb`. It is
 `Architecture: all` and depends only on `python3`, so the same file installs on
