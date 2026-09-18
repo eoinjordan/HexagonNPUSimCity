@@ -66,7 +66,7 @@ after `npm run build`.
 
 ### Arduino App Lab connector
 
-An [Arduino UNO Q connector](arduino/README.md) ships two App Lab Apps:
+An [Arduino UNOQ or Ventuino Q connector](arduino/README.md) ships two App Lab Apps:
 **HexagonNPUCity** hosts this visualization on the board and mirrors its
 illustrative telemetry onto the RGB LEDs, and **HexagonNPUCity Bench** runs a
 real `llama-bench` sweep across five GGUF quantizations and drives the embedded
