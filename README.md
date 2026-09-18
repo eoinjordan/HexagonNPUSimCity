@@ -66,6 +66,8 @@ after `npm run build`.
 
 ### Arduino App Lab connector
 
+> UnoQ does not have any NPU so it will just show CPU utilisation specs
+
 An [Arduino UNOQ or Ventuino Q connector](arduino/README.md) ships two App Lab Apps:
 **HexagonNPUCity** hosts this visualization on the board and mirrors its
 illustrative telemetry onto the RGB LEDs, and **HexagonNPUCity Bench** runs a
