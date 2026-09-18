@@ -1,6 +1,7 @@
 import { clear, el } from './dom'
 import '../styles/getapp.css'
 import androidQr from '../assets/qr-android.svg'
+import linuxQr from '../assets/qr-linux.svg'
 import windowsQr from '../assets/qr-windows.svg'
 
 export interface GetApp {
@@ -10,8 +11,11 @@ export interface GetApp {
 }
 
 const RELEASES = 'https://github.com/eoinjordan/HexagonNPUSimCity/releases'
+// These asset names are printed into QR codes that are already in circulation.
+// Renaming one silently breaks every existing code; tools/release.test.mjs pins them.
 const ANDROID_URL = `${RELEASES}/latest/download/HexagonNPUSimCity-arm64-cpu-preview.apk`
 const WINDOWS_URL = `${RELEASES}/latest/download/HexagonNPUSimCity-arm64.msi`
+const LINUX_URL = `${RELEASES}/latest/download/HexagonNPUSimCity-all.deb`
 
 /**
  * "Get the app" — a small modal with QR codes to the native preview installers.
@@ -50,11 +54,12 @@ export function createGetApp(): GetApp {
       ]),
       el('p', {
         class: 'getapp-sub',
-        text: 'Scan to install the on-device preview. Android is a debug-signed evaluation build; Windows needs Windows 11 on ARM (Snapdragon) with WebView2.',
+        text: 'Scan to install the on-device preview. Android is a debug-signed evaluation build; Windows needs Windows 11 on ARM (Snapdragon) with WebView2; the Debian package installs on amd64 and arm64 (Raspberry Pi).',
       }),
       el('div', { class: 'getapp-cards' }, [
         card('Scan with your phone', androidQr, 'Android APK (ARM64)', ANDROID_URL),
         card('Scan, or open on the PC', windowsQr, 'Windows installer (ARM64 MSI)', WINDOWS_URL),
+        card('Scan, or open on the Pi', linuxQr, 'Linux package (Debian/Ubuntu)', LINUX_URL),
       ]),
       el('p', {
         class: 'getapp-note',

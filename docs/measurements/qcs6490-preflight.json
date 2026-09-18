@@ -1,0 +1,81 @@
+{
+  "kind": "qcs6490-llamacpp-preflight",
+  "checkedOn": "2026-09-18",
+  "status": "blocked",
+  "scope": "SSH and DSP runtime readiness, plus installed/upstream llama.cpp compatibility. Not an LLM, HMX, accuracy, or performance validation.",
+  "target": {
+    "board": "Thundercomm RUBIK Pi 3",
+    "soc": "QCS6490",
+    "socId": 498,
+    "socRevision": "1.0",
+    "os": "Ubuntu 24.04.3 LTS",
+    "architecture": "aarch64",
+    "hexagonArchitecture": "v68"
+  },
+  "ssh": {
+    "target": "ubuntu@ubuntu.local",
+    "passwordlessBatchMode": "passed",
+    "hostKeyVerification": "The supplied IP advertised the same ED25519 fingerprint as the existing trusted ubuntu.local entry; StrictHostKeyChecking remained enabled.",
+    "privateKeyCopiedToBoard": false
+  },
+  "boardChanges": [
+    "Authorized the existing Mac Ed25519 public key for ubuntu; verified a fresh key-only login.",
+    "Added ubuntu to the existing fastrpc group with usermod -aG; verified read/write access to /dev/fastrpc-cdsp in a fresh SSH session.",
+    "Saved the vendor diagnostic result under /home/ubuntu/hexagon-npu-validation/qnn/Result.csv."
+  ],
+  "dspDiagnostic": {
+    "runtime": "QAIRT 2.39.0.250926",
+    "tool": "/home/ubuntu/qairt/2.39.0.250926/bin/aarch64-ubuntu-gcc9.4/qnn-platform-validator",
+    "environment": {
+      "LD_LIBRARY_PATH": "/home/ubuntu/qairt/2.39.0.250926/lib/aarch64-ubuntu-gcc9.4",
+      "ADSP_LIBRARY_PATH": "/home/ubuntu/qairt/2.39.0.250926/lib/hexagon-v68/unsigned"
+    },
+    "arguments": [
+      "--backend", "dsp",
+      "--coreVersion",
+      "--testBackend",
+      "--targetPath", "/home/ubuntu/hexagon-npu-validation/qnn"
+    ],
+    "executionUser": "ubuntu",
+    "hardware": "Supported",
+    "libraryPrerequisites": "Found",
+    "coreVersion": "Hexagon Architecture V68",
+    "calculatorSumTest": "Passed",
+    "overallDiagnosticResult": "Passed",
+    "fastRpcLibraryVersion": null,
+    "fastRpcLibraryVersionNote": "A separate --libVersion query reports that the FastRPC library version API is not implemented. The final saved diagnostic omits that optional query.",
+    "caveat": "The vendor calculator test demonstrates DSP RPC execution. It does not demonstrate an LLM, tensor/HMX execution, model correctness, or NPU token throughput."
+  },
+  "installedLlama": {
+    "version": "10107",
+    "commit": "c0bc8591e",
+    "build": "GNU 14.2.0 for Linux aarch64",
+    "benchmarkPath": "/opt/oddessy-edge/llama/llama-bench",
+    "benchmarkSha256": "7f022e0de493e8c9665187313905d3465750082156f42e1fa1d8b75aeea99ea8",
+    "probeArguments": ["--list-devices"],
+    "availableOffloadDevices": [],
+    "observedBackendLibraries": ["CPU", "RPC"],
+    "hexagonBackendLibraryFound": false,
+    "existingServerModifiedOrRestarted": false
+  },
+  "upstreamCompatibility": {
+    "repository": "https://github.com/ggml-org/llama.cpp",
+    "revision": "44be98f057e9f9902a8ee12630e181c7f8ec2953",
+    "buildDefinition": "https://github.com/ggml-org/llama.cpp/blob/44be98f057e9f9902a8ee12630e181c7f8ec2953/ggml/src/ggml-hexagon/CMakeLists.txt",
+    "linuxGuide": "https://github.com/ggml-org/llama.cpp/blob/44be98f057e9f9902a8ee12630e181c7f8ec2953/docs/backend/snapdragon/linux.md",
+    "configuredHtpKernelTargets": ["v73", "v75", "v79", "v81"],
+    "v68KernelBuiltByThisRevision": false,
+    "caveat": "This checks the pinned upstream build and the installed binary, not every third-party fork. A v68-compatible llama.cpp backend must be identified and validated before claiming NPU inference."
+  },
+  "requestedValidation": {
+    "llamaCppNpuInference": "not_run",
+    "quantizationSweep": "not_run",
+    "cpuFallbackAcceptedAsNpu": false,
+    "npuTokensPerSecond": null,
+    "npuOutputCorrectness": "not_tested",
+    "applicationNpuIntegration": "not_tested",
+    "illustrativeSimulationFiguresChanged": false
+  },
+  "blocker": "The installed llama.cpp has no Hexagon offload device, and the checked upstream build does not supply v68 kernels for this QCS6490.",
+  "nextDecision": "Provide or identify a v68-compatible llama.cpp fork/build, or explicitly authorize a separate QAIRT/QNN inference validation. Do not substitute CPU results or the DSP calculator diagnostic for the requested llama.cpp NPU run."
+}
