@@ -1,17 +1,19 @@
 # HexagonNPUCity — Arduino App Lab connector
 
-An [Arduino App Lab](https://docs.arduino.cc/software/app-lab/) app that runs the
-**HexagonNPUSimCity** visualization on an **Arduino UNO Q**, and mirrors the
-sim's illustrative telemetry onto the board's hardware.
+Two [Arduino App Lab](https://docs.arduino.cc/software/app-lab/) apps for the
+**HexagonNPUSimCity** project: an **Arduino UNO Q** illustrative API/LED host
+on port 7080, and a separate measured llama.cpp bench viewer on port 7000.
+They are not the native Ubuntu/QCS6490 validator; see the
+[dedicated NPU support guide](../docs/qcs6490-npu.md) for that verified path.
 
 The UNO Q is a fitting host: it pairs a **Qualcomm Dragonwing QRB2210** MPU
 (quad Cortex‑A53 + Adreno GPU, running Debian Linux) with an **STM32U585** MCU
 (Cortex‑M33, Zephyr). This connector uses *both brains* — exactly the kind of
 heterogeneous compute the Hexagon NPU sim is about.
 
-> **Illustrative, not measured.** Every figure comes from the same illustrative
-> model as the web app (`src/sim/model.ts`); nothing here reads real NPU
-> counters. Independent educational project — not affiliated with, sponsored by,
+> **Two distinct modes.** The API/LED app uses illustrative coefficients matching
+> the web defaults. The bench app shows tool-reported token rates, not CPU
+> utilization or NPU counters. Independent educational project — not affiliated with, sponsored by,
 > or endorsed by Qualcomm or Arduino. Hexagon, Snapdragon and Dragonwing are
 > trademarks of Qualcomm; Arduino and UNO Q are trademarks of Arduino S.r.l.
 
@@ -23,10 +25,18 @@ heterogeneous compute the Hexagon NPU sim is about.
   colour (INT4 red · INT8 yellow · INT16 green · FP16 cyan), LED2 shows the
   **workload** (LLM decode blue · Vision magenta · Idle off).
 - **MCU RGB LED** (LED3, via the Bridge): shows the precision colour and
-  **pulses at a rate set by tensor‑engine utilisation** — a busier workload
+  **pulses at a rate set by simulated tensor-engine utilisation** — a busier workload
   pulses faster.
-- **Optional button** (D4 → GND): cycles the workload on the board, which the
-  sim and LEDs reflect live.
+- **Optional button** (D4 → GND): cycles the Python model's workload and LED
+  state on the board.
+
+The Python model/API and browser simulation are currently **independent state
+owners**. The browser does not poll `/api/telemetry` or send its selectors to
+`/api/control/*`; hosting the web build does not synchronize those controls with
+the LEDs. Use the API or MCU button to control the board-side model. The Python
+model shares defaults and equations, but omits the web model's seeded jitter,
+steps at 20 Hz, and initializes its base power immediately, so it is not a
+bit-for-bit, frame-by-frame port. Hardware updates are sent every 0.2 seconds.
 
 ```
         Browser / UNO Q display                 STM32U585 (MCU, Zephyr)
@@ -51,7 +61,7 @@ arduino/
     python/
       main.py               UNO Q entry point (App.run) — wires HTTP + LEDs + Bridge
       server.py             HTTP host + JSON telemetry/control API (stdlib only)
-      hexagon_model.py      illustrative model, ported 1:1 from src/sim/model.ts
+      hexagon_model.py      independent illustrative model with matching defaults
       requirements.txt      (empty — standard library only)
       web/                  the built sim (copied in at deploy time)
     sketch/
@@ -71,6 +81,7 @@ arduino/
 ## Try it locally (no board)
 
 ```bash
+npm ci                          # from the repository root; Node >=22.18
 arduino/scripts/test-local.sh     # run the Python tests
 arduino/scripts/run-local.sh      # serve the sim + API at http://localhost:7080/
 ```
@@ -86,12 +97,23 @@ The telemetry API the board exposes:
 | `POST /api/control/workload` | `{"value":"vision-conv"}` |
 | `POST /api/control/cycle-workload` · `.../cycle-precision` | advance one step |
 
+Use Python 3.10+ for the connector's type syntax. The local preview builds the
+web app only when `dist/index.html` is missing; run `npm run build` yourself to
+refresh an existing build after frontend edits.
+
+**Trusted LAN only:** this server listens on `0.0.0.0`, exposes unauthenticated
+control endpoints, and has no runtime-proxy-style Host/Origin allowlist or
+request-size limit. Keep it behind a trusted network/firewall. Its safety model
+is not the same as the loopback-only service in
+[the native/runtime guide](../docs/native.md).
+
 ## Deploy to the UNO Q
 
 The board logs in as `arduino@<host>` (default host below: `echoglow-eoin`).
 
 ```bash
 # 1) One-time: keyless SSH. Prompts for the board password once — type it yourself.
+mkdir -p ~/.ssh
 arduino/scripts/setup-ssh.sh echoglow-eoin
 
 # 2) Build the web app, copy the App to the board, and (re)start it via the App CLI.
@@ -107,11 +129,25 @@ You can also just open the `arduino/app` folder in Arduino App Lab and press
 **Run** — App Lab compiles the sketch, flashes the MCU, and starts the Python
 container.
 
+Deployment requires Node/npm and rsync on the development host, SSH access to
+the board, and an installed Arduino App CLI. The deploy script rebuilds `dist`,
+overlays Python/sketch files, replaces the deployed `python/web` directory, and
+preserves an existing App Lab-managed `sketch.yaml`. It targets
+`/home/arduino/ArduinoApps/HexagonNPUCity`; it is not a generic `ubuntu` user
+deployment script. Local tests do not establish LED/Bridge operation on a board.
+
 ### If `echoglow-eoin` doesn't resolve
 
 `setup-ssh.sh` adds a `Host echoglow-eoin` block to `~/.ssh/config` using
 `HostName echoglow-eoin.local` (mDNS). If your board isn't on mDNS, edit that
 `HostName` to the board's IP address or Tailscale name.
+
+Pass a bare alias, not a name already ending in `.local`, because the script
+appends that suffix. Existing alias blocks are left unchanged. It reuses or
+creates `~/.ssh/id_ed25519_echoglow` (an unencrypted dedicated key), backs up the
+SSH config before adding a new alias, and copies only the public key. Verify
+the host fingerprint and protect the private key; enter passwords in the
+terminal, not in logs or chat.
 
 ## Configuration
 
@@ -126,32 +162,59 @@ container.
 `bench/` is a second App Lab App that does the opposite of `app/`: instead of
 showing the illustrative model, it **measures** something real. It runs
 `llama-bench` over five GGUF quantizations of one model and drives the embedded
-visualization with the results, so switching format visibly changes the city
-because the *measurement* changed.
+visualization's measurement readout and display precision. The animated TOPS,
+power, utilization and main tokens/s meters still use the simulation model.
 
-> **Which board has an NPU?** The **VENTUNO Q** pairs a Qualcomm Dragonwing IQ8
-> (up to 40 dense TOPS) with an STM32H5, and Dragonwing IQ-class parts expose a
-> compute DSP hosting an HTP — the device llama.cpp's Hexagon backend targets.
-> The **UNO Q**'s QRB2210 does not: it exposes only `/dev/fastrpc-adsp` and an
-> `adsp` remoteproc, with no cDSP, no `/usr/lib/rfsa` and no QNN libraries, so
-> the Hexagon backend cannot load there and llama.cpp measures its CPU.
+> **Board capability is not runtime validation.** The supplied setup script
+> builds CPU llama.cpp for the UNO Q's QRB2210, whose observed BSP has no
+> cDSP/HTP path for this backend. A VENTUNO Q or another NPU-capable board still
+> needs a compatible runtime/kernel build and an actual checked workload.
+> QCS6490's cDSP presence did not make the tested GenieX GGUF path work.
 >
-> `bench-sweep.py` never assumes either way. It offloads to `HTP0` when
-> `/dev/fastrpc-cdsp` exists, then labels each result from the `backends` field
-> **llama-bench itself reports** — so a board that has an NPU but a CPU-only
-> llama.cpp build is still reported as `cpu`.
+> `bench-sweep.py` requests `HTP0` and `-ngl 99` when `/dev/fastrpc-cdsp` exists,
+> then classifies the first benchmark row's backend text. That request and label
+> are not output checks or per-operator offload evidence. An HTP run must be
+> independently validated before making a hardware-support claim.
 
 ```bash
 # 1) One-time on the board: build llama.cpp and fetch the GGUFs (~700 MB).
 scp arduino/scripts/bench-setup-board.sh <board>:~/ && ssh <board> ~/bench-setup-board.sh
 
 # 2) Install the App and the sweep service, then start it.
-arduino/scripts/bench-deploy.sh arduino@<board>
-ssh <board> 'arduino-app-cli app start user:hexagon_npu_simcity'
+arduino/scripts/bench-deploy.sh arduino@<board> ~/.ssh/id_ed25519_echoglow
+ssh arduino@<board> 'arduino-app-cli app start user:hexagon_npu_simcity'
 ```
 
 Open `http://<board>:7000/`. App Lab runs **one App at a time**, so starting the
 bench stops `HexagonNPUCity` and vice versa.
+
+The setup script creates `~/hexsim/venv`, builds `llama-bench` under
+`~/hexsim/llama.cpp` with two build jobs, and installs binaries/libraries under
+`~/hexsim/llama`. It downloads SmolLM2-135M-Instruct Q4_0, Q4_K_M, Q5_K_M, Q8_0,
+and F16 GGUFs into `~/hexsim/models`. It uses current upstream/Hugging Face
+branches, not pinned content hashes; record revisions and model hashes before
+publishing comparisons. It does not install a QNN or direct-Hexagon backend.
+
+`bench-deploy.sh` requires the board's WebUI example assets at
+`/var/lib/arduino-app-cli/examples/inspirational/platform_unoq/color-your-leds/assets/libs`.
+It copies those libraries rather than vendoring them. It installs a
+`hexsim-sweep.service` **user service**, repeating the sweep every 900 seconds.
+If no systemd user session is available, the script prints a warning and you
+must start the sweep manually:
+
+```sh
+~/hexsim/venv/bin/python ~/hexsim/sweep.py
+systemctl --user status hexsim-sweep.service
+journalctl --user -u hexsim-sweep.service
+systemctl --user stop hexsim-sweep.service
+```
+
+App Lab's one-app limit does not stop that separate host-side service. Stop or
+disable the service explicitly when no longer needed. Default sweep settings
+are 64 prompt tokens, 32 generated tokens, two repetitions and `os.cpu_count()`
+threads; options are `--threads`, `--n-prompt`, `--n-gen`, `--reps`, `--out`, and
+`--loop`. A missing model is skipped; a failing model is logged and skipped.
+An empty/partial sweep is not a full five-format validation.
 
 ### How it reaches the visualization
 
@@ -170,8 +233,20 @@ host: bench-sweep.py ──► bench/data/sweep.json ──► container: python
                                           src/runtime/applab.ts
 ```
 
-The embedded page accepts samples only from loopback and RFC1918 origins, and
-replies `ready` to the sender's own origin — never `*`.
+The embedded page accepts HTTP(S) loopback, RFC1918, `.local`, and configured
+exact extra origins, and replies `ready` to the sender's own origin, never `*`.
+The envelope uses channel `hexagon-npu-simcity`, version `1`, and `hello`,
+`ready`, or `sample` message types. A sample includes `model`, `quantization`,
+`backend`, `device`, and prompt/generation token rates; malformed labels or
+unknown formats/backends are rejected and invalid rates display as unavailable.
+This is a trusted-LAN integration, not authenticated hardware telemetry.
+
+The WebUI app exposes `GET /sweep`, polls for the first report every two seconds,
+and cycles reported formats every eight seconds. Its iframe points to the
+published GitHub Pages build, so loading it needs access to that site and does
+not automatically use local frontend edits. Q4-family formats select the INT4
+display bucket, Q5/Q6/Q8 select INT8, and F16/BF16 select FP16; those buckets do
+not change the model's actual format.
 
 | Knob | Where |
 | --- | --- |

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createRuntimePanel } from './panel.ts'
 import { installDom } from '../../tests/helpers/dom.mjs'
+import { createBus } from '../core/bus.ts'
 
 test('runtime panel makes no automatic requests and keeps native actions out of a regular browser', (context) => {
   const environment = installDom()
@@ -43,6 +44,44 @@ test('runtime panel refuses remote service URLs and displays connection failures
   await new Promise((resolve) => setImmediate(resolve))
   assert.match(panel.querySelector('output').textContent, /loopback/)
   assert.equal(panel.querySelector('button').disabled, false)
+})
+
+test('board workloads are explicit, remain opt-in, and distinguish NPU vision from CPU LLM and idle', async (context) => {
+  const environment = installDom()
+  context.after(environment.cleanup)
+  const calls = []
+  const bus = createBus()
+  const panel = createRuntimePanel(environment.document.body, async (url, options) => {
+    calls.push({ url, options })
+    if (options.method === 'GET') return Response.json({ models: ['vision', 'language', 'none'], workloads: [
+      { id: 'vision-conv', model: 'vision', backend: 'qnn-htp' },
+      { id: 'llm-decode', model: 'language', backend: 'cpu' },
+      { id: 'idle', model: 'none', backend: 'none' },
+    ] })
+    const { workload } = JSON.parse(options.body)
+    const results = {
+      'vision-conv': { backend: 'qnn-htp', cpuFallback: false, top5: [{ label: 'fixture class' }], profile: { executionMs: 7, acceleratorCycles: 100, convolutionOperators: [{ cycles: 10 }], acceleratorExecutionVerified: true } },
+      'llm-decode': { backend: 'cpu', generatedTokens: 32, generationMs: 6400, acceleratorExecutionVerified: false },
+      idle: { backend: 'none', inferenceRequested: false, busy: false },
+    }
+    return Response.json({ source: 'qcs6490', workload, ...results[workload] })
+  }, bus)
+  const provider = panel.querySelector('[aria-label="Measured runtime"]')
+  provider.value = 'qcs6490'; provider.dispatchEvent(new environment.window.Event('change'))
+  assert.equal(calls.length, 0)
+  const [connect, run] = panel.querySelectorAll('button')
+  connect.click(); await new Promise(resolve => setImmediate(resolve))
+  assert.equal(run.disabled, false)
+  run.click(); await new Promise(resolve => setImmediate(resolve))
+  assert.match(panel.querySelector('output').textContent, /NPU vision.*7.000 ms/)
+  bus.emit('workload:change', { id: 'llm-decode' })
+  assert.equal(calls.length, 2)
+  run.click(); await new Promise(resolve => setImmediate(resolve))
+  assert.match(panel.querySelector('output').textContent, /CPU LLM.*5.00 tokens\/s.*no NPU LLM/)
+  bus.emit('workload:change', { id: 'idle' })
+  run.click(); await new Promise(resolve => setImmediate(resolve))
+  assert.match(panel.querySelector('output').textContent, /Idle.*no inference dispatched/)
+  assert.equal(calls.length, 4)
 })
 
 test('native bridge only accepts QNN results with verified output and no CPU fallback', async (context) => {

@@ -2,6 +2,12 @@
 
 ## Status and Boundaries
 
+The current installer release is **v1.1.0**, with Debian package version
+`1.1.0-1`. Use the [README download table](../README.md#v110-preview-installers)
+for version-pinned assets, checksums and platform requirements. The rebuilt
+web assets include the optional QCS6490 gateway panel; the installers do not
+bundle or configure the board's QAIRT/model dependencies.
+
 The web city remains illustrative. A separate **Runtime measurements** panel can
 show timings from a local inference server or an explicit native arithmetic run.
 Measured values never replace the city's synthetic TOPS/power/utilization values.
@@ -10,7 +16,22 @@ Measured values never replace the city's synthetic TOPS/power/utilization values
 | --- | --- | --- |
 | Android ARM64 | Local WebView shell; CPU sample; optional QNN-enabled AAR/HTP library path | APK build and Java unit tests run locally. No phone/emulator was attached. Default APK is CPU-only, not secretly QNN-accelerated. |
 | Windows ARM64 | WebView2 shell; official ONNX Runtime QNN package; WiX MSI definition | Cross-compilation and publish payload verified; shared C# workload executes on CPU in tests. MSI creation/install and QNN device execution require Windows. |
-| Local runtimes | Ollama, llama.cpp, LM Studio v0 adapters; opt-in 32-token sample | HTTP contracts and timing units tested with controlled responses. No LLM server/model was launched or downloaded automatically. |
+| Linux Debian package | Architecture-independent static web build, Python loopback launcher, desktop entry | CI installs/removes the package on its Ubuntu runner. This packages the visualization, not an NPU runtime. |
+| QCS6490 on Ubuntu | QNN HTP matrix validation and MobileNet vision, plus a loopback workload gateway | Matrix oracle and vision reference/profile checks passed. The web Runtime panel runs NPU vision, CPU language, or no-dispatch idle; Android/Windows native hosts are separate. |
+| Local runtimes | Ollama, llama.cpp, LM Studio v0 adapters; opt-in 32-token sample | Adapter contracts are unit-tested. A local Mac llama.cpp run is recorded; its timing API does not verify the hardware backend. Ollama/LM Studio hardware runs are not established by that result. |
+
+For the board setup, complete reproduction steps, measured results, and failed
+GenieX/llama.cpp alternatives, use the dedicated
+[QCS6490 NPU support guide](qcs6490-npu.md). The QCS6490 result does not certify
+the Android or Windows hosts, an NPU LLM, or the city's synthetic counters.
+
+The deployed QCS6490 gateway replaces the board's model entry point on loopback
+8088 and forwards language/VLM compatibility requests to the preserved CPU
+worker on 8089. It serves the visualization at `/?runtime=qcs6490`, with explicit
+NPU vision, CPU LLM, and idle actions. Use a same-port SSH tunnel for browser
+access. See [gateway usage, model provenance and rollback](qcs6490-npu.md#multi-workload-gateway).
+This Python gateway is separate from the Node `npm run runtime` proxy described
+below; the Node proxy still supports only Ollama, llama.cpp and LM Studio.
 
 ## Small Native Workload
 
@@ -107,7 +128,54 @@ The official [Microsoft.ML.OnnxRuntime.QNN package](https://www.nuget.org/packag
 supplies the Windows ARM64 backend. Inspect package licenses and preserve notices
 before distributing it. The [QNN EP documentation](https://onnxruntime.ai/docs/execution-providers/QNN-ExecutionProvider.html)
 describes fixed-shape/operator constraints, provider options and profiling.
-No real Snapdragon device test has been run as part of local Mac verification.
+The local Mac build does not establish Windows-on-Snapdragon hardware execution
+or MSI installation. The separate Ubuntu QCS6490 test uses QAIRT directly, not
+the Windows ONNX Runtime package.
+
+## Linux Debian Package
+
+The build creates `release/linux/HexagonNPUSimCity-all.deb` from `dist/`, using
+[tools/deb.mjs](../tools/deb.mjs). Build on a machine with Node >=22.18 and
+`dpkg-deb` available:
+
+```sh
+npm ci
+npm run build
+node tools/deb.mjs
+dpkg-deb --info release/linux/HexagonNPUSimCity-all.deb
+```
+
+If `dpkg-deb` is absent, the tool only stages files under
+`build/deb/hexagon-npu-simcity/` and prints a message; it has **not** produced a
+package. Install the distribution's `dpkg` tooling and rerun the packaging step.
+
+On a Debian-family target:
+
+```sh
+sudo apt install ./HexagonNPUSimCity-all.deb
+hexagon-npu-simcity
+```
+
+The package is `Architecture: all` and depends on Python >=3.8, not Node. It
+installs `/usr/bin/hexagon-npu-simcity`, static files under
+`/usr/lib/hexagon-npu-simcity/web/`, and a desktop entry. The launcher binds only
+to `127.0.0.1:8770`, opens the default browser when `xdg-open` is available, and
+stops its child HTTP server when the launcher exits. Set `HEXAGON_PORT` to use
+a different available port. The browser still needs WebGL2.
+
+```sh
+HEXAGON_PORT=8771 hexagon-npu-simcity
+sudo apt remove hexagon-npu-simcity
+```
+
+For a headless board, leave the launcher running and access it through an SSH
+forward, for example `ssh -N -L 8771:127.0.0.1:8770 ubuntu@ubuntu.local`, then
+open `http://127.0.0.1:8771/` on the development machine. Do not expose its simple
+static server to the public internet.
+
+This package can serve the visualization on amd64 or arm64 systems, including
+Ubuntu boards. It does not install QAIRT, an LLM, App Lab, GPU/NPU drivers, or the
+QCS6490 validation tools. A portable package is not a hardware-support guarantee.
 
 ## Ollama, llama.cpp and LM Studio
 
@@ -128,6 +196,33 @@ Defaults: Ollama port 11434, llama.cpp port 8080, LM Studio port 1234. Set
 can be supplied via the corresponding `*_API_KEY` environment variable; they are
 not sent to the browser or logged by this service.
 
+| Variable | Purpose |
+| --- | --- |
+| `RUNTIME_PORT` | Dashboard listen port, default `4318`; allowed range `1024` to `65535` |
+| `RUNTIME_ORIGIN` | One additional exact trusted browser origin, not wildcard CORS |
+| `OLLAMA_URL`, `LLAMACPP_URL`, `LMSTUDIO_URL` | Loopback HTTP(S) origins; credentials, paths, queries and fragments are rejected |
+| `OLLAMA_API_KEY`, `LLAMACPP_API_KEY`, `LMSTUDIO_API_KEY` | Optional upstream bearer credentials, supplied outside the browser |
+
+The service accepts only the three known providers, model discovery, and a fixed
+matrix-multiplication prompt capped at 32 tokens. It rejects concurrent workload
+requests, upstream redirects, invalid Host/Origin headers, and oversized payloads.
+Upstream requests have a 30-second timeout. It is not an arbitrary prompt proxy
+or a remote administration endpoint.
+
+For a remote board server, use SSH forwarding instead of relaxing the loopback
+restriction. For example, forward its port 8080 to local port 8081 in a separate
+terminal, then start the dashboard with that upstream:
+
+```sh
+ssh -N -L 8081:127.0.0.1:8080 ubuntu@ubuntu.local
+```
+
+```sh
+LLAMACPP_URL=http://127.0.0.1:8081 npm run runtime
+```
+
+A tunnel makes a timing endpoint accessible; it does not establish NPU use.
+
 For the Windows shell, explicitly allow its bundled origin when starting the
 service: `RUNTIME_ORIGIN=https://hexagon.simcity.local npm run runtime` (use
 `$env:RUNTIME_ORIGIN="https://hexagon.simcity.local"` in PowerShell). HTTPS Pages
@@ -147,17 +242,64 @@ References: [Ollama generate API](https://docs.ollama.com/api/generate),
 [llama.cpp server](https://github.com/ggml-org/llama.cpp/tree/master/tools/server),
 [LM Studio v0 stats](https://lmstudio.ai/docs/developer/rest/endpoints).
 
+### Recorded Local Llama Smoke Test
+
+[measurements/llama-local.json](measurements/llama-local.json) records a
+2026-09-17 run on an Apple M1 Pro using Qwen2.5-0.5B-Instruct Q4_K_M. It checked
+server health, model discovery, nonempty generated text, one excluded dashboard
+warm-up, five timing samples, and timing-unit conversion. It is not a model
+accuracy test, controlled benchmark, or Qualcomm/Apple Neural Engine result.
+The report's `backend` remains `unverified`; its `llamaVersion` field is empty,
+so that report alone does not establish the server build version.
+
+With an explicitly started llama.cpp server and dashboard, rerun the smoke tool
+from the repository root:
+
+```sh
+LLAMACPP_URL=http://127.0.0.1:8080 \
+DASHBOARD_URL=http://127.0.0.1:4318 \
+LLAMA_MODEL_ALIAS=qwen2.5-0.5b-instruct-q4_k_m \
+node --import tsx tools/llama-smoke.mjs
+```
+
+It overwrites `docs/measurements/llama-local.json`; review the resulting diff
+before retaining a new measurement. The tool does not install a server or model,
+and `llama-server` must be on `PATH` for its version query. A sample may trigger
+model loading in an already-running inference server.
+
+## Arduino Measured Connector
+
+The two [Arduino App Lab apps](../arduino/README.md) have different purposes:
+port 7080 serves illustrative telemetry and LED controls; the port-7000 bench
+app displays reported llama.cpp token rates through the App Lab message bridge.
+Neither automatically imports the offline QCS6490 report. The QCS6490 guide
+documents the native Ubuntu path independently of App Lab.
+
 ## Automation and Release Gates
 
 - CI runs dependency audit, typecheck, unit/integration tests, browser pixel and
   interaction tests, Android unit/lint/APK build and Windows CPU tests/ARM64 MSI
-  packaging. Reports and artifacts are retained on Actions.
+  packaging. The `verify` job also packages the Debian build, checks
+  `Architecture: all`, and installs/removes it on Ubuntu. Reports and artifacts
+  are retained on Actions. These workflow definitions do not themselves prove
+  the latest remote run succeeded.
 - Pages deploys the successful `main` CI artifact; no privileged workflow
   executes a pull request's scripts.
 - A stable `vMAJOR.MINOR.PATCH` tag must match the package version and MSI limits.
-  Release automation reuses CI, requires all three platform artifacts, generates
-  SHA256 checksums and creates a **draft**, not an automatically public release.
+  Release automation reuses CI and requires four deliverables:
+  `HexagonNPUSimCity-web.zip`, `HexagonNPUSimCity-arm64-cpu-preview.apk`,
+  `HexagonNPUSimCity-arm64.msi`, and `HexagonNPUSimCity-all.deb`, plus generated
+  `SHA256SUMS`. A missing release is created as a draft. For an existing tag's
+  release, assets are uploaded with `--clobber` without changing its publication
+  status; rerunning can therefore replace assets on an already-public release.
+- A manually dispatched release workflow on a branch runs packaging but skips
+  the tag-only publishing job. Stable `/releases/latest/download/...` links
+  require an eligible published release, not merely a pushed tag or a draft.
 - Dependabot checks npm, GitHub Actions, Gradle and NuGet weekly.
 - Before publishing a draft: check APK/MSI install and uninstall, signing and
   license notices, physical-device QNN execution, output verification, and CPU
   comparison. CI success alone does not certify Hexagon acceleration.
+- The Python QCS6490 validator tests and physical-board execution are separate
+  commands documented in [the NPU guide](qcs6490-npu.md); the current main CI
+  workflow does not run them. The Arduino connector has its own path-filtered
+  workflow and test command.

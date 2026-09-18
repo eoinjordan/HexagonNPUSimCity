@@ -1,0 +1,95 @@
+{
+  "kind": "browser-recorded-documentation-media",
+  "clips": {
+    "overview": {
+      "recordedAt": "2026-09-18T16:07:29.799Z",
+      "url": "http://127.0.0.1:8088/",
+      "width": 960,
+      "height": 600,
+      "frames": 64,
+      "framesPerSecond": 8,
+      "durationSeconds": 8.01,
+      "bytes": 1136785,
+      "sha256": "aae77e1d49fa244b4cabd0ab02a8cd7885d035376201c84a55711eabbb36f51d",
+      "scope": "Illustrative simulation only, not hardware performance.",
+      "evidence": []
+    },
+    "tour": {
+      "recordedAt": "2026-09-18T16:09:09.174Z",
+      "url": "http://127.0.0.1:8088/",
+      "width": 960,
+      "height": 600,
+      "frames": 144,
+      "framesPerSecond": 8,
+      "durationSeconds": 18.01,
+      "bytes": 5828401,
+      "sha256": "dfe38f8d4dbfb1ede539efa7dfb6e6cfc66a3ff9c2498a1f3eb43c292cd248a3",
+      "scope": "Illustrative simulation only, not hardware performance.",
+      "evidence": []
+    },
+    "quantization": {
+      "recordedAt": "2026-09-18T16:09:55.463Z",
+      "url": "http://127.0.0.1:8088/",
+      "width": 960,
+      "height": 600,
+      "frames": 80,
+      "framesPerSecond": 8,
+      "durationSeconds": 10.01,
+      "bytes": 1102198,
+      "sha256": "72b3b3d97a4e6cef3cbe4dd7ede2d3b5449ab21ad3a47b4150c7137bc964d34c",
+      "scope": "Illustrative simulation only, not hardware performance.",
+      "evidence": []
+    },
+    "workloads": {
+      "recordedAt": "2026-09-18T16:10:36.981Z",
+      "url": "http://127.0.0.1:8088/",
+      "width": 960,
+      "height": 600,
+      "frames": 72,
+      "framesPerSecond": 8,
+      "durationSeconds": 9.01,
+      "bytes": 961284,
+      "sha256": "d3f2de4979f697011e98dc56844380c29447339254c547d9c40e15b0febf2161",
+      "scope": "Illustrative simulation only, not hardware performance.",
+      "evidence": []
+    },
+    "qcs6490": {
+      "recordedAt": "2026-09-18T16:11:43.568Z",
+      "url": "http://127.0.0.1:8088/?runtime=qcs6490",
+      "width": 1280,
+      "height": 800,
+      "frames": 108,
+      "framesPerSecond": 8,
+      "durationSeconds": 13.51,
+      "bytes": 1389510,
+      "sha256": "c8c913681d94bd36d89dba990717c8241583f0c09950a81847f5c9b8900246c4",
+      "scope": "Real completed gateway requests. NPU vision, CPU language, no-dispatch idle. GIF playback is not request latency.",
+      "evidence": [
+        {
+          "workload": "vision-conv",
+          "backend": "qnn-htp",
+          "summary": "NPU vision | Samoyed | 6.575 ms QNN graph | 17 positively timed convolution kernels",
+          "acceleratorExecutionVerified": true,
+          "inferenceRequested": true,
+          "artifacts": "/home/ubuntu/hexagon-npu-validation/gateway-runs/vision-f6mbhs0w"
+        },
+        {
+          "workload": "llm-decode",
+          "backend": "cpu",
+          "summary": "CPU LLM | 5.12 tokens/s | 32 generated tokens | no NPU LLM support",
+          "acceleratorExecutionVerified": false,
+          "inferenceRequested": true,
+          "artifacts": null
+        },
+        {
+          "workload": "idle",
+          "backend": "none",
+          "summary": "Idle | no inference dispatched | global NPU utilization and power unmeasured",
+          "acceleratorExecutionVerified": false,
+          "inferenceRequested": false,
+          "artifacts": null
+        }
+      ]
+    }
+  }
+}

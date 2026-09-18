@@ -1,0 +1,170 @@
+{
+  "kind": "qcs6490-gateway-acceptance",
+  "status": "pass",
+  "checkedAt": "2026-09-18T15:17:13.622489+00:00",
+  "gateway": "http://127.0.0.1:8088",
+  "cpuWorker": "http://127.0.0.1:8089",
+  "gatewayService": "qcs6490-runtime.service",
+  "backup": "/home/ubuntu/hexagon-npu-validation/service-backup.OB8nx4",
+  "idle": {
+    "source": "qcs6490",
+    "activeWorkload": "idle",
+    "busy": false,
+    "inferenceRequestsDispatched": 0,
+    "npuUtilization": null,
+    "powerWatts": null,
+    "scope": "No inference dispatched by this request. Not a measurement of global NPU idle or zero power.",
+    "workload": "idle",
+    "backend": "none",
+    "model": "No inference",
+    "inferenceRequested": false,
+    "tokensPerSecond": null
+  },
+  "vision": {
+    "kind": "qcs6490-vision-inference",
+    "workload": "vision-conv",
+    "backend": "qnn-htp",
+    "model": "MobileNet-v2 W8A16",
+    "cpuFallback": false,
+    "elapsedMs": 370.0927129993943,
+    "top5": [
+      {
+        "index": 258,
+        "label": "Samoyed",
+        "probability": 0.8907568839328619
+      },
+      {
+        "index": 259,
+        "label": "Pomeranian",
+        "probability": 0.050400410145457604
+      },
+      {
+        "index": 261,
+        "label": "keeshond",
+        "probability": 0.026406377076515934
+      },
+      {
+        "index": 279,
+        "label": "Arctic fox",
+        "probability": 0.026181498197547393
+      },
+      {
+        "index": 270,
+        "label": "white wolf",
+        "probability": 0.0007923548583541014
+      }
+    ],
+    "profile": {
+      "acceleratorCycles": 4508665.0,
+      "acceleratorMicroseconds": 2453.0,
+      "executionMs": 7.426,
+      "convolutionOperators": [
+        {
+          "operator": "/net/features/1/conv/3/Conv:OpId_61 (cycles)",
+          "cycles": 14605.0
+        },
+        {
+          "operator": "/net/features/2/conv/6/Conv:OpId_103 (cycles)",
+          "cycles": 6557.0
+        },
+        {
+          "operator": "/net/features/3/conv/6/Conv:OpId_145 (cycles)",
+          "cycles": 8267.0
+        },
+        {
+          "operator": "/net/features/4/conv/6/Conv:OpId_189 (cycles)",
+          "cycles": 2539.0
+        },
+        {
+          "operator": "/net/features/5/conv/6/Conv:OpId_231 (cycles)",
+          "cycles": 4241.0
+        },
+        {
+          "operator": "/net/features/6/conv/6/Conv:OpId_275 (cycles)",
+          "cycles": 4350.0
+        },
+        {
+          "operator": "/net/features/7/conv/6/Conv:OpId_319 (cycles)",
+          "cycles": 1996.0
+        },
+        {
+          "operator": "/net/features/8/conv/6/Conv:OpId_361 (cycles)",
+          "cycles": 3835.0
+        },
+        {
+          "operator": "/net/features/9/conv/6/Conv:OpId_405 (cycles)",
+          "cycles": 3878.0
+        },
+        {
+          "operator": "/net/features/10/conv/6/Conv:OpId_449 (cycles)",
+          "cycles": 3860.0
+        },
+        {
+          "operator": "/net/features/11/conv/6/Conv:OpId_493 (cycles)",
+          "cycles": 5642.0
+        },
+        {
+          "operator": "/net/features/12/conv/6/Conv:OpId_535 (cycles)",
+          "cycles": 8037.0
+        },
+        {
+          "operator": "/net/features/13/conv/6/Conv:OpId_579 (cycles)",
+          "cycles": 7798.0
+        },
+        {
+          "operator": "/net/features/14/conv/6/Conv:OpId_623 (cycles)",
+          "cycles": 3376.0
+        },
+        {
+          "operator": "/net/features/15/conv/6/Conv:OpId_665 (cycles)",
+          "cycles": 7092.0
+        },
+        {
+          "operator": "/net/features/16/conv/6/Conv:OpId_709 (cycles)",
+          "cycles": 5629.0
+        },
+        {
+          "operator": "/net/features/17/conv/6/Conv:OpId_753 (cycles)",
+          "cycles": 11509.0
+        }
+      ],
+      "zeroDurationConvolutionEntries": 35,
+      "acceleratorExecutionVerified": true
+    },
+    "artifacts": "/home/ubuntu/hexagon-npu-validation/gateway-runs/vision-7xpg1x1u",
+    "sha256": {
+      "context": "39b5d0211f65d69c7f529236949f99263eb6112cf2f36ac18c49e069189a87f4",
+      "image": "f3f87bb8ab3c26c7ecfd3ac60421d7f32b0503d1d6c5baf8bac42ed93d86351a",
+      "input": "677bc9fa94a9cc9114bf61695e660a2e4896b7e1fa433e947786d18ffd79dff4",
+      "labels": "e697a491aa735cc6c2aaf982f8e86e8fc7b0a1ea7750a2cc6a2bdfc1e109012f"
+    },
+    "scope": "Image classification; CPU preprocessing/postprocessing, HTP graph execution. Not a VLM, dataset accuracy result, or utilization/power measurement.",
+    "source": "qcs6490"
+  },
+  "language": {
+    "source": "qcs6490",
+    "workload": "llm-decode",
+    "model": "oddessy-vlm",
+    "backend": "cpu",
+    "elapsedMs": 6771.753228000307,
+    "generatedTokens": 32,
+    "generationMs": 6168.189,
+    "tokensPerSecond": 5.187908476864116,
+    "response": " Matrix multiplication is a way of combining two matrices to create a new matrix by multiplying the corresponding elements of the matrices together. The resulting matrix has dimensions that are determined",
+    "acceleratorExecutionVerified": false,
+    "scope": "CPU-only llama.cpp worker; generation timings exclude prompt processing. No NPU LLM claim."
+  },
+  "vlmCompatibility": {
+    "backend": "cpu",
+    "response": "The main subject of the image is a white dog sitting on a grassy lawn",
+    "usage": {
+      "completion_tokens": 16,
+      "prompt_tokens": 530,
+      "total_tokens": 546,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    }
+  },
+  "scope": "Actual NPU image-classification request and CPU LLM/VLM requests through the gateway; idle confirms no dispatch by that request, not global hardware inactivity."
+}

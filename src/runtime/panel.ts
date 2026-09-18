@@ -1,5 +1,7 @@
 import { el } from '../ui/dom'
-import { isProvider, type RuntimeMeasurement } from './telemetry'
+import type { Bus } from '../core/bus'
+import type { WorkloadId } from '../core/types'
+import { formatBoardMeasurement, isProvider, type RuntimeMeasurement } from './telemetry'
 
 interface NativeReply {
   id: string
@@ -51,23 +53,50 @@ function nativeSample(backend: 'cpu' | 'qnn'): Promise<NativeReply> {
   })
 }
 
-export function createRuntimePanel(root: HTMLElement, fetchImpl: typeof fetch = fetch): HTMLElement {
+export function createRuntimePanel(root: HTMLElement, fetchImpl: typeof fetch = fetch, bus?: Bus): HTMLElement {
+  const boardPage = new URL(window.location.href).searchParams.get('runtime') === 'qcs6490'
   const status = el('output', { class: 'runtime-status', 'aria-live': 'polite', text: 'Not connected' })
   const provider = el('select', { 'aria-label': 'Measured runtime' }, [
     el('option', { value: 'ollama', text: 'Ollama' }),
     el('option', { value: 'llamacpp', text: 'llama.cpp' }),
     el('option', { value: 'lmstudio', text: 'LM Studio' }),
+    el('option', { value: 'qcs6490', text: 'QCS6490: NPU vision / CPU LLM' }),
   ])
-  const endpoint = el('input', { type: 'url', 'aria-label': 'Local stats service', value: 'http://127.0.0.1:4318' })
+  if (boardPage) provider.value = 'qcs6490'
+  const endpoint = el('input', { type: 'url', 'aria-label': 'Local stats service', value: boardPage ? window.location.origin : 'http://127.0.0.1:4318' })
   const model = el('select', { 'aria-label': 'Local model', disabled: true })
+  const workload = el('select', { 'aria-label': 'Measured workload' }, [
+    el('option', { value: 'vision-conv', text: 'Vision / conv (NPU)' }),
+    el('option', { value: 'llm-decode', text: 'LLM decode (CPU)' }),
+    el('option', { value: 'idle', text: 'Idle (no inference)' }),
+  ])
+  const image = el('input', { type: 'file', accept: 'image/jpeg,image/png', 'aria-label': 'Vision image (optional)' })
+  const modelField = el('label', { text: 'Model' }, [model])
+  const workloadField = el('label', { text: 'Measured workload' }, [workload])
+  const imageField = el('label', { text: 'Image (optional)' }, [image])
+  const boardModels = new Map<string, string>()
   const connect = el('button', { type: 'button', class: 'btn', text: 'Connect' })
   const run = el('button', { type: 'button', class: 'btn', text: 'Run 32-token sample', disabled: true })
   let connectedSource = ''
   let connectedEndpoint = ''
   let busy = false
-  const invalidate = () => { run.disabled = true; model.disabled = true; model.replaceChildren(); status.textContent = 'Not connected' }
-  provider.addEventListener('change', invalidate)
+  const boardControls = () => {
+    const board = provider.value === 'qcs6490'
+    modelField.hidden = board
+    workloadField.hidden = !board
+    imageField.hidden = !board || workload.value !== 'vision-conv'
+    run.textContent = board ? workload.value === 'idle' ? 'Confirm idle' : workload.value === 'vision-conv' ? 'Run vision sample' : 'Run CPU LLM sample' : 'Run 32-token sample'
+    if (board && boardModels.has(workload.value)) model.value = boardModels.get(workload.value)!
+  }
+  const invalidate = () => { run.disabled = true; model.disabled = true; model.replaceChildren(); boardModels.clear(); status.textContent = 'Not connected'; boardControls() }
+  provider.addEventListener('change', () => {
+    endpoint.value = provider.value === 'qcs6490' ? boardPage ? window.location.origin : 'http://127.0.0.1:8088' : 'http://127.0.0.1:4318'
+    invalidate()
+  })
   endpoint.addEventListener('input', invalidate)
+  workload.addEventListener('change', () => { boardControls(); bus?.emit('workload:change', { id: workload.value as WorkloadId }) })
+  bus?.on('workload:change', ({ id }) => { workload.value = id; boardControls() })
+  bus?.on('reset', () => { workload.value = 'llm-decode'; boardControls() })
 
   function serviceOrigin(): string {
     const url = new URL(endpoint.value)
@@ -76,12 +105,13 @@ export function createRuntimePanel(root: HTMLElement, fetchImpl: typeof fetch = 
     return url.origin
   }
 
-  async function request(path: string, body?: object) {
+  async function request(path: string, body?: object | File) {
+    const upload = body instanceof window.File
     const response = await fetchImpl(`${serviceOrigin()}${path}`, {
       method: body ? 'POST' : 'GET',
-      headers: body ? { 'Content-Type': 'application/json', 'X-Hexagon-Request': '1' } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
-      signal: AbortSignal.timeout(35_000),
+      headers: body ? { 'Content-Type': upload ? body.type : 'application/json', 'X-Hexagon-Request': '1' } : undefined,
+      body: upload ? body : body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(provider.value === 'qcs6490' ? 150_000 : 35_000),
     })
     const data = await response.json()
     if (!response.ok) throw new Error(data.error || `Service returned HTTP ${response.status}`)
@@ -91,12 +121,12 @@ export function createRuntimePanel(root: HTMLElement, fetchImpl: typeof fetch = 
   async function action(work: () => Promise<void>) {
     if (busy) return
     busy = true
-    connect.disabled = run.disabled = provider.disabled = endpoint.disabled = true
+    connect.disabled = run.disabled = provider.disabled = endpoint.disabled = workload.disabled = image.disabled = true
     status.textContent = 'Running...'
     try { await work() } catch (error) { status.textContent = error instanceof Error ? error.message : 'Runtime request failed' }
     finally {
       busy = false
-      connect.disabled = provider.disabled = endpoint.disabled = false
+      connect.disabled = provider.disabled = endpoint.disabled = workload.disabled = image.disabled = false
       run.disabled = model.options.length === 0 || provider.value !== connectedSource || endpoint.value !== connectedEndpoint
     }
   }
@@ -105,14 +135,33 @@ export function createRuntimePanel(root: HTMLElement, fetchImpl: typeof fetch = 
     invalidate()
     const data = await request(`/api/runtime/models?provider=${encodeURIComponent(provider.value)}`)
     if (!Array.isArray(data.models) || !data.models.every((name: unknown) => typeof name === 'string')) throw new Error('Invalid model response')
+    if (provider.value === 'qcs6490') {
+      if (!Array.isArray(data.workloads) || data.workloads.length !== 3) throw new Error('Gateway did not report all three workloads')
+      const backends: Record<string, string> = { 'vision-conv': 'qnn-htp', 'llm-decode': 'cpu', idle: 'none' }
+      for (const entry of data.workloads) {
+        if (!entry || backends[entry.id] !== entry.backend || typeof entry.model !== 'string' || !data.models.includes(entry.model)
+          || boardModels.has(entry.id)) throw new Error('Invalid gateway workload mapping')
+        boardModels.set(entry.id, entry.model)
+      }
+    }
     model.replaceChildren(...data.models.map((name: string) => el('option', { value: name, text: name })))
     model.disabled = model.options.length === 0
     connectedSource = provider.value
     connectedEndpoint = endpoint.value
-    status.textContent = model.options.length ? 'Connected - device backend unverified' : 'Connected - no local models'
+    boardControls()
+    status.textContent = provider.value === 'qcs6490' ? 'Connected | vision: QNN HTP | LLM: CPU | idle: no inference' : model.options.length ? 'Connected - device backend unverified' : 'Connected - no local models'
   }))
 
   run.addEventListener('click', () => void action(async () => {
+    if (provider.value === 'qcs6490') {
+      const selected = workload.value as WorkloadId
+      bus?.emit('workload:change', { id: selected })
+      const file = selected === 'vision-conv' ? image.files?.[0] : undefined
+      if (file && (file.size > 8 * 1024 * 1024 || !['image/png', 'image/jpeg'].includes(file.type))) throw new Error('Choose a PNG or JPEG image up to 8 MiB')
+      const value = await request(file ? '/api/runtime/vision' : '/api/runtime/run', file ?? { provider: 'qcs6490', workload: selected })
+      status.textContent = formatBoardMeasurement(selected, value)
+      return
+    }
     if (!isProvider(provider.value)) throw new Error('Unknown runtime')
     const value: RuntimeMeasurement = await request('/api/runtime/run', { provider: provider.value, model: model.value })
     const rate = typeof value.tokensPerSecond === 'number' && Number.isFinite(value.tokensPerSecond) ? `${value.tokensPerSecond.toFixed(1)} tokens/s` : 'Token rate unavailable'
@@ -125,11 +174,15 @@ export function createRuntimePanel(root: HTMLElement, fetchImpl: typeof fetch = 
     el('div', { class: 'runtime-fields' }, [
       el('label', { text: 'Source' }, [provider]),
       el('label', { text: 'Local service' }, [endpoint]),
-      el('label', { text: 'Model' }, [model]),
+      modelField,
+      workloadField,
+      imageField,
       el('div', { class: 'runtime-actions' }, [connect, run]),
       status,
     ]),
   ])
+  boardControls()
+  if (boardPage) panel.open = true
   const host = window as Window & { chrome?: { webview?: NativeChannel }; HexagonNative?: NativeChannel }
   if (host.chrome?.webview || host.HexagonNative) {
     const nativeStatus = el('output', { class: 'runtime-status', 'aria-live': 'polite', text: 'Native sample not run' })

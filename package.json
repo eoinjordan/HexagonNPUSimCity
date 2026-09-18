@@ -1,7 +1,7 @@
 {
   "name": "hexagon-npu-simcity",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "description": "An independent, non-commercial educational 3D visualization of the Qualcomm Hexagon NPU. Not affiliated with Qualcomm.",
   "license": "Apache-2.0",

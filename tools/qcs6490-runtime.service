@@ -1,0 +1,25 @@
+[Unit]
+Description=Hexagon SimCity QCS6490 gateway (NPU vision, CPU language, idle)
+After=network.target oddessy-model.service
+Wants=oddessy-model.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+SupplementaryGroups=fastrpc
+WorkingDirectory=/home/ubuntu/hexagon-npu-validation
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/python3 /home/ubuntu/hexagon-npu-validation/qcs6490_runtime.py --serve --port 8088 --sdk-root /home/ubuntu/qairt/2.39.0.250926 --vision-context /home/ubuntu/hexagon-npu-validation/vision/v0.40.1/compiled/mobilenet_v2.bin --labels /home/ubuntu/hexagon-npu-validation/vision/mobilenet_v2-qnn_dlc-w8a8/labels.txt --image /home/ubuntu/hexagon-npu-validation/vision/sample.jpg --artifacts /home/ubuntu/hexagon-npu-validation/gateway-runs --llm-url http://127.0.0.1:8089 --llm-model oddessy-vlm --web-root /home/ubuntu/hexagon-npu-validation/web
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=15
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/ubuntu/hexagon-npu-validation/gateway-runs
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

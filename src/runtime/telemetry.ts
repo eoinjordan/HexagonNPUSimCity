@@ -54,3 +54,29 @@ export function modelNames(source: RuntimeProvider, payload: unknown): string[] 
     return source === 'ollama' ? entry.name : entry.id
   }).filter((name): name is string => typeof name === 'string' && name.length > 0 && name.length <= 256))].slice(0, 100)
 }
+
+export function formatBoardMeasurement(workload: string, payload: unknown): string {
+  const data = record(payload)
+  if (data.source !== 'qcs6490' || data.workload !== workload) throw new Error('Board response does not match the requested workload')
+  if (workload === 'idle') {
+    if (data.backend !== 'none' || data.inferenceRequested !== false || data.busy !== false) throw new Error('Board did not confirm idle')
+    return 'Idle | no inference dispatched | global NPU utilization and power unmeasured'
+  }
+  if (workload === 'llm-decode') {
+    const tokens = finite(data.generatedTokens)
+    const duration = finite(data.generationMs)
+    if (data.backend !== 'cpu' || data.acceleratorExecutionVerified !== false || tokens === null || !Number.isSafeInteger(tokens)
+      || tokens <= 0 || tokens > 32 || duration === null || duration <= 0) throw new Error('Invalid CPU LLM measurement')
+    return `CPU LLM | ${(tokens * 1000 / duration).toFixed(2)} tokens/s | ${tokens} generated tokens | no NPU LLM support`
+  }
+  const profile = record(data.profile)
+  const duration = finite(profile.executionMs)
+  const cycles = finite(profile.acceleratorCycles)
+  const operators = profile.convolutionOperators
+  const first = Array.isArray(data.top5) ? record(data.top5[0]) : {}
+  if (workload !== 'vision-conv' || data.backend !== 'qnn-htp' || data.cpuFallback !== false
+    || profile.acceleratorExecutionVerified !== true || duration === null || duration <= 0 || cycles === null || cycles <= 0
+    || !Array.isArray(operators) || !operators.length || !operators.every((entry) => (finite(record(entry).cycles) ?? 0) > 0)
+    || typeof first.label !== 'string' || first.label.length > 256 || !first.label.trim()) throw new Error('Vision result lacks valid HTP execution evidence')
+  return `NPU vision | ${first.label} | ${duration.toFixed(3)} ms QNN graph | ${operators.length} positively timed convolution kernels`
+}

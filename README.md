@@ -8,6 +8,12 @@ through the scalar, vector and tensor accelerators fused around a shared memory,
 and back out again.
 
 No installation to explore — it runs in a browser with WebGL2. View here: https://eoinjordan.github.io/HexagonNPUSimCity/
+
+For measured hardware work, see [QCS6490 NPU support](#qcs6490-npu-support-work)
+and the [complete setup and validation guide](docs/qcs6490-npu.md).
+The [documentation map](#documentation) covers development, installers,
+runtime measurements, Arduino apps, and release procedures.
+
 ### The NPU at a glance
 
 Districts are NPU components; the moving particles are the dataflow (cyan activations, orange weights from DRAM). Press `N` to swing between night and day.
@@ -26,7 +32,7 @@ Press `T` to follow one inference through the fused pipeline — the camera glid
 
 > **Independent & non-commercial.** Not affiliated with, sponsored by, or endorsed
 > by Qualcomm. Hexagon, Snapdragon, Adreno and Oryon are trademarks of Qualcomm
-> Incorporated. Every number shown is **illustrative** and scaled to be readable —
+> Incorporated. The city's simulation figures are **illustrative** and scaled to be readable —
 > a teaching model, **not** a datasheet or a measurement of any real silicon.
 
 Inspired by [PGSimCity](https://github.com/NikolayS/PGSimCity), which does the
@@ -34,11 +40,29 @@ same thing for PostgreSQL.
 
 ## Native and measured runtimes
 
+### v1.1.0 Preview Installers
+
+The [v1.1.0 release](https://github.com/eoinjordan/HexagonNPUSimCity/releases/tag/v1.1.0)
+refreshes all installers with the QCS6490 Runtime panel and current web app:
+
+| Download | Scope |
+| --- | --- |
+| [Android ARM64 APK](https://github.com/eoinjordan/HexagonNPUSimCity/releases/download/v1.1.0/HexagonNPUSimCity-arm64-cpu-preview.apk) | Debug-signed, CPU-only native arithmetic preview |
+| [Windows ARM64 MSI](https://github.com/eoinjordan/HexagonNPUSimCity/releases/download/v1.1.0/HexagonNPUSimCity-arm64.msi) | Windows 11 on ARM and WebView2; QNN requires compatible hardware/drivers |
+| [Debian/Ubuntu package](https://github.com/eoinjordan/HexagonNPUSimCity/releases/download/v1.1.0/HexagonNPUSimCity-all.deb) | Static visualization and Python launcher; amd64/arm64, no bundled NPU runtime |
+| [Standalone web ZIP](https://github.com/eoinjordan/HexagonNPUSimCity/releases/download/v1.1.0/HexagonNPUSimCity-web.zip) | Built WebGL application for static hosting |
+| [SHA256SUMS](https://github.com/eoinjordan/HexagonNPUSimCity/releases/download/v1.1.0/SHA256SUMS) | Integrity checks for all four packages |
+
+The board gateway, Qualcomm libraries, and model files require the separate
+[QCS6490 setup](docs/qcs6490-npu.md#multi-workload-gateway); installing a preview
+does not enable NPU inference automatically. See the
+[release notes](docs/release-notes.md) for signing and hardware-validation limits.
+
 Android ARM64 and Windows ARM64 shells can run a small, output-checked ONNX
 arithmetic workload with explicit CPU/QNN selection. The default Android preview
 is CPU-only; a QNN-enabled build requires matching SDK libraries. Windows has a
-QNN-backed build and MSI packaging workflow. Actual Snapdragon execution and MSI
-installation still require target-device verification.
+QNN-backed build and MSI packaging workflow. Android/Windows NPU execution and
+Windows MSI installation still require target-device verification.
 
 Ollama, llama.cpp and LM Studio adapters provide separate measured timings through
 an opt-in local service, never inferred NPU utilization. See the
@@ -49,11 +73,80 @@ Android example source:
 [edgeimpulse/example-android-inferencing](https://github.com/edgeimpulse/example-android-inferencing)
 and its [QNN example](https://github.com/edgeimpulse/example-android-inferencing/tree/main/qnn-hardware-acceleration).
 
-### Linux / VentuinoQ / Rubik Pi package
+## QCS6490 NPU Support Work
 
-Releases include a Debian package, `HexagonNPUSimCity-all.deb`. It is
-`Architecture: all` and depends only on `python3`, so the same file installs on
-an amd64 desktop and on Ubuntu or Raspberry Pi OS running arm64:
+**Eoin Jordan's NPU enablement work** establishes a reproducible native Ubuntu
+path on the RUBIK Pi 3: verified SSH/cDSP access, a QNN HTP graph exporter,
+independent output checking, vendor hardware profiling, and retained evidence.
+The [full QCS6490 guide](docs/qcs6490-npu.md) contains prerequisites, build/run
+commands, artifact definitions, troubleshooting, and the runtime investigation.
+
+**Working:** quantized arithmetic validation and MobileNet-v2 image classification
+through QAIRT's `qnn-net-run`. A deployed gateway now owns the board's loopback
+port 8088, with the original language/VLM model retained as a CPU worker on 8089.
+**Not established:** NPU LLM generation. The tested GenieX 0.6.1 Q4_0 path mapped
+v68 to a v73 kernel and aborted; the gateway explicitly labels its language
+fallback as CPU, not NPU.
+
+| Gateway workload | Actual execution | Checked evidence |
+| --- | --- | --- |
+| Vision / conv | MobileNet-v2 W8A16 on QNN HTP; CPU image preprocessing and postprocessing | Positive HTP/convolution profiles; 1,000 logits compared with the identical DLC on SNPE CPU, cosine similarity 0.999665 and matching top prediction |
+| LLM decode / existing VLM API | Existing Qwen2.5-VL-3B model on CPU | Text and image requests passed through the replacement entry point; measured token rates are CPU rates |
+| Idle | No inference dispatched by that request | Gateway request counter unchanged; global board/NPU utilization and power are unmeasured |
+
+Use the [gateway setup and rollback instructions](docs/qcs6490-npu.md#multi-workload-gateway)
+to access the live board UI. The Runtime panel provides explicit workload runs
+and optional PNG/JPEG upload. Simulation controls do not automatically start
+hardware workloads or convert the city's meters into measured counters.
+See the [vision comparison](docs/measurements/qcs6490-vision.json) and
+[gateway acceptance report](docs/measurements/qcs6490-gateway.json).
+
+![Live QCS6490 gateway showing NPU vision, CPU language generation, and no-dispatch idle](docs/media/qcs6490.gif)
+
+Recorded from the deployed board on **2026-09-18**. The Runtime panel shows
+actual completed requests; the surrounding city remains illustrative. Playback
+speed is edited for readability, not a latency benchmark. Recording provenance
+and backend summaries are in [the media manifest](docs/media/recordings.json).
+
+### Validated QCS6490 NPU results
+
+Measured on **2026-09-18** on a **Thundercomm RUBIK Pi 3**, with QCS6490 / Hexagon
+v68, Ubuntu 24.04.3 LTS, and **Qualcomm QAIRT 2.39.0.250926** (`qnn-net-run`,
+QNN HTP backend). These are actual hardware-test results, separate from the
+city's illustrative meters.
+
+| Measurement | Validated result |
+| --- | --- |
+| Workload | Dense UINT8 matrix multiply: `[32,64] x [64,64] -> [32,64]` |
+| Quantization | Affine UINT8; scale `0.125`, zero point `128` for inputs, weights and outputs |
+| Distinct input fixtures | 8 |
+| Total HTP executions | 32 |
+| Warm-up executions excluded from timing statistics | 8 |
+| Measured executions | 24, with detailed profiling enabled |
+| Exact output comparisons | **65,536 / 65,536 passed** |
+| Mean QNN execution time | **0.4706 ms** |
+| Median QNN execution time | 0.4705 ms |
+| Minimum / maximum QNN execution time | 0.420 / 0.518 ms |
+| Hardware-execution evidence | Positive accelerator and matrix-operation cycle counts in all 32 profiles |
+| CPU inference fallback | None; only `libQnnHtp.so` selected |
+| NPU LLM generation throughput | **Not validated**; NPU tokens/s unavailable |
+
+Timings are **host-side QNN graph-execution durations**, including RPC and
+profiling overhead, but excluding context loading and tensor file I/O. This is
+a small arithmetic correctness/integration test, not a peak TOPS benchmark,
+HMX-only measurement, utilization/power measurement, or proof of LLM support.
+It does not calibrate the city's simulated counters.
+
+Evidence: [raw measurements and binary fingerprints](docs/measurements/qcs6490-qnn.json),
+[board preflight](docs/measurements/qcs6490-preflight.json),
+[graph and fixture exporter](tools/qnn-smoke.cpp), and
+[independent output/profile validator](tools/qnn_validate.py).
+
+## Linux Package
+
+The release pipeline packages `HexagonNPUSimCity-all.deb`. It is
+`Architecture: all` and depends on Python >=3.8, so the payload is portable
+between amd64 and arm64 Debian-family systems, including Ubuntu boards:
 
 ```sh
 sudo apt install ./HexagonNPUSimCity-all.deb
@@ -62,27 +155,34 @@ hexagon-npu-simcity            # serves on 127.0.0.1:8770 and opens a browser
 
 It installs a desktop entry and serves the bundled build on loopback only.
 Override the port with `HEXAGON_PORT`. Build it yourself with `node tools/deb.mjs`
-after `npm run build`.
+after `npm run build`, with `dpkg-deb` installed. Without `dpkg-deb`, the script
+only stages the package. See [Linux packaging](docs/native.md#linux-debian-package)
+for install/remove and headless access. This is a WebGL visualization package,
+not an NPU driver, QAIRT installer, or LLM distribution.
 
-### Arduino App Lab connector
+## Arduino App Lab Connector
 
-> UnoQ does not have any NPU so it will just show CPU utilisation specs
+> The supplied UNO Q bench setup measures CPU token throughput, not CPU
+> utilization. A device's NPU capability alone does not prove runtime support.
 
-An [Arduino UNOQ or Ventuino Q connector](arduino/README.md) ships two App Lab Apps:
-**HexagonNPUCity** hosts this visualization on the board and mirrors its
-illustrative telemetry onto the RGB LEDs, and **HexagonNPUCity Bench** runs a
-real `llama-bench` sweep across five GGUF quantizations and drives the embedded
-visualization with the measured token rates.
+The [Arduino connector](arduino/README.md) supplies two App Lab apps:
+**HexagonNPUCity** hosts the visualization and a separate illustrative Python
+model/API that drives RGB LEDs on port 7080. Its browser controls and LED state
+are not currently synchronized. **HexagonNPUCity Bench**, on port 7000, displays
+a host-side `llama-bench` sweep across five GGUF formats in an embedded city.
 
-The App Lab connector targets Qualcomm Dragonwing boards. On a **VENTUNO Q**
-(Dragonwing IQ8) the Hexagon backend can target the NPU; the **UNO Q**'s QRB2210
-has no cDSP/HTP, so llama.cpp measures its CPU there. Each sample is labelled
-with the backend `llama-bench` actually reported. See
-[verification](docs/verification.md#arduino-app-lab-measurements).
+The observed UNO Q QRB2210 BSP has no cDSP/HTP path for this llama.cpp backend.
+Other boards, including VENTUNO Q, need their own compatible runtime and device
+validation. Bench labels come from tool-reported metadata, not independently
+verified offload profiles. Received samples change the separate readout and
+display precision; the main simulation meters remain illustrative. See
+[the measurement boundary](docs/verification.md#arduino-app-lab-measurements).
 
 ## See it in motion
 
-> Recorded from the running app. Everything on screen is **illustrative** (a teaching model), not a hardware measurement.
+> The four simulation GIFs were refreshed from the running app on 2026-09-18.
+> Their city metrics are **illustrative**, not hardware measurements. The separate
+> QCS6490 clip above shows the explicitly labelled measured Runtime panel.
 
 
 ### Quantization / precision
@@ -97,10 +197,15 @@ Switch **workload** — LLM decode, Vision / conv, Idle — and watch the scalar
 
 ![Switching between LLM decode, vision convolution and idle workloads and watching the utilisation bars react](docs/media/workloads.gif)
 
+See [recording instructions](docs/verification.md#documentation-recordings) to
+regenerate the GIFs from the current application, including canvas and file checks.
+
 ## Quick start
 
+Use Node **>=22.18** and a WebGL2-capable browser. From the repository root:
+
 ```bash
-npm install
+npm ci
 npm run dev      # open the printed localhost URL
 ```
 
@@ -113,6 +218,10 @@ npm run test:coverage
 npm run test:browser # real WebGL component tests (install Chromium first)
 npm run test:app     # production app tests under a Pages-style subpath
 ```
+
+`npm test` does not include Playwright, the Arduino Python suite, or physical
+NPU execution. Test/build requirements for each surface are listed in
+[AGENTS.md](AGENTS.md#5-testing-ci-release--deploy).
 
 ## What you are looking at
 
@@ -139,10 +248,28 @@ inspect it. Press **?** for the full key map and colour legend.
 | `T` | Guided tour | `N` | Day / night |
 | `K` / `P` | Pause / resume | `R` | Reset |
 | `H` | Establishing shot | `1` `2` `3` | LLM / Vision / Idle workload |
-| `?` | Keys & legend | `Esc` | Close overlay |
+| `?` / `/` | Keys & legend | `Esc` | Dismiss the active overlay/tour or selection |
 
 Try switching **precision** (INT4 → FP16) and watch the tensor engine's TOPS and
 the token rate change, or run the **Vision / conv** workload and watch HMX light up.
+
+The seven toolbar actions cover tour, pause, home camera, day/night, help,
+settings, and downloads. Select a district in the scene or legend to inspect it.
+Shortcuts leave input/select fields and OS modifier-key combinations untouched.
+
+**Settings** changes illustrative per-format TOPS/token ceilings, the selected
+workload's activity/occupancy/tile targets, and power coefficients. The ONNX
+opset checklist is display/configuration metadata, not runtime compatibility
+validation. Changes last for the current page session; **Restore defaults**
+resets coefficients, whereas **Reset** resets simulation state and camera while
+retaining those settings. Day/night preference is saved locally when storage is
+available. Reduced-motion preferences suppress animated packet/world movement.
+
+**Runtime measurements** is opt-in and separate from the illustrative meters.
+The [runtime guide](docs/native.md) describes local inference-server connections
+and explicit native CPU/QNN actions. **Get the app** links Android, Windows and
+Linux installers through stable GitHub release URLs; those links require a
+published release with matching asset names, not merely a pushed tag or draft.
 
 ## How much to trust this
 
@@ -194,8 +321,27 @@ src/
   engine/   renderer, camera rig, CSS2D labels, dataflow, picking
   world/    the districts: ground, VTCM, accelerators, tiling, system context
   ui/       HUD, inspector, guided tour, help overlay, keyboard controls
+  runtime/  local/native measurements and App Lab message validation
   main.ts   boot + wiring
+native/     Android and Windows preview hosts
+arduino/    illustrative API/LED app and measured bench app
+tools/      packaging, runtime proxy, model generation and QCS6490 validation
+docs/       verification, runtime guides, NPU support, measurement records
+.github/    CI, Pages, release and connector automation
 ```
+
+## Documentation
+
+| Guide | Scope |
+| --- | --- |
+| [QCS6490 NPU support](docs/qcs6490-npu.md) | Eoin Jordan's hardware work, exact reproduction, profiles, results, and blocked LLM paths |
+| [Verification](docs/verification.md) | Architecture sources, all default coefficients, quantization semantics, and measurement boundaries |
+| [Native packages and runtimes](docs/native.md) | Android/Windows builds, Debian packaging, local LLM adapters, ports, security, and release gates |
+| [Arduino connector](arduino/README.md) | Both App Lab apps, APIs, LEDs, deployment, CPU sweep, and current limitations |
+| [App Lab in-app README](arduino/app/README.md) | Short instructions shipped with the illustrative board app |
+| [Agent/developer guide](AGENTS.md) | Architecture, commands, extension recipes, and required checks |
+| [Contributing](CONTRIBUTING.md) | Change scope, evidence expectations, and PR checklist |
+| [Preview release notes](docs/release-notes.md) | Four distribution assets and publication caveats |
 
 ## Contributing & extending
 

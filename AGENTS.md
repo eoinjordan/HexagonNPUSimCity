@@ -4,18 +4,23 @@ Guidance for humans **and** coding agents working on **HexagonNPUSimCity** — a
 explorable 3D model of the Qualcomm® Hexagon™ NPU. Live:
 <https://eoinjordan.github.io/HexagonNPUSimCity/>
 
-This file is the single source of truth for how to build, test, and extend the
+This file is the entry point for how to build, test, and extend the
 project. It is a generic `AGENTS.md` — the convention read by coding agents
 across tools — so there are no vendor-specific variants to keep in sync.
-`CONTRIBUTING.md` and `README.md` defer here.
+`CONTRIBUTING.md` and `README.md` defer here. The scoped
+[Arduino guide](arduino/AGENTS.md) adds connector-specific constraints. Detailed
+platform commands live in [docs/native.md](docs/native.md) and
+[docs/qcs6490-npu.md](docs/qcs6490-npu.md). Executable configuration and retained
+reports remain authoritative when documenting behavior or measurements.
 
 ---
 
 ## 0. Golden rules (read first)
 
-1. **Figures are illustrative.** Every on-screen number (TOPS, tokens/s, watts,
-   utilisation, tile counts) is a scaled teaching value, **not** a datasheet or
-   measurement. The reviewed defaults live in `src/sim/model.ts`
+1. **Simulation figures are illustrative.** The city's TOPS, tokens/s, watts,
+   utilisation and tile counts are scaled teaching values, **not** datasheet or
+   measured values. Separate runtime readouts and saved reports must identify
+   their source, workload and limits. The reviewed defaults live in `src/sim/model.ts`
    (`DEFAULT_SIM_CONFIG`) and are audited in `docs/verification.md`. If you
    change a default, update `docs/verification.md` in the same change. Never
    present a modelled number as hardware fact.
@@ -33,7 +38,11 @@ across tools — so there are no vendor-specific variants to keep in sync.
    micro-tiling is a *scheduling concept*, not a silicon block. Keep copy and
    dataflow consistent with that (see `docs/verification.md`).
 6. **Keep it green before you push.** See §5 — CI gates the live deploy on the
-   **whole** pipeline (web + Android + Windows).
+  **whole** pipeline (web + Debian packaging + Android + Windows).
+7. **Require execution evidence.** The QCS6490 QAIRT matrix test passed; the
+  tested GenieX GGUF NPU path did not. Never promote an HTP device listing,
+  cDSP node, backend request, or DSP calculator result into proof of LLM
+  acceleration. Keep raw reports historical and label new evidence.
 
 ---
 
@@ -52,6 +61,11 @@ Node **>= 22.18** (see `engines`). Install with `npm ci`.
 | `npm run test:browser` | Playwright real-WebGL component tests. Run `npx playwright install chromium` first. |
 | `npm run test:app` | Build, then Playwright tests against the production bundle under a Pages-style subpath. |
 | `npm run runtime` | Local **measured-mode** stats server (`tools/runtime-server.mjs`) for the opt-in Runtime panel. |
+| `npm run native:prepare` | Generate the fixed ONNX smoke model and build the shared web assets. |
+| `node tools/deb.mjs` | Package an existing `dist/` into a Debian installer; requires `dpkg-deb`, otherwise only stages files. |
+| `arduino/scripts/test-local.sh` | Connector Python model, HTTP and sweep tests; no board execution. |
+| `python3 -m unittest discover -s tools -p 'test_qnn_validate.py' -v` | QCS6490 oracle/profile-validator tests; no NPU execution. |
+| `python3 -m unittest discover -s tools -p 'test_qcs6490_runtime.py' -v` | Workload gateway, vision evidence, HTTP and CPU-worker compatibility tests; actual model runs are separate. |
 
 > ⚠️ `npm test` alone does **not** run the Playwright suites. CI does. If you
 > touch the HUD/toolbar/overlays, also run `npm run test:browser` and
@@ -73,15 +87,20 @@ src/
                          heterogeneous · sensors · city.ts (assembly) · build.ts (helpers)
   ui/                    hud · panel (inspector) · tour · help · settings · getapp · controls · dom (el helper)
   runtime/               panel.ts + telemetry.ts (opt-in measured mode; local server or native WebView channel)
+                         applab.ts (trusted-LAN message parsing and separate reported-rate display)
   assets/                static assets (QR SVGs, inlined by Vite when < 4 KB)
   styles/                tokens.css (design tokens) · ui.css · settings.css · getapp.css
-tools/                   model.mjs · release.mjs · runtime-server.mjs · llama-smoke.mjs (+ *.test.mjs)
+tools/                   model.mjs · release.mjs · deb.mjs · runtime-server.mjs · llama-smoke.mjs
+                         qnn-smoke.cpp (context exporter) · qnn_validate.py (+ corresponding tests)
+                         qcs6490_runtime.py (NPU vision / CPU language gateway) · qcs6490-*.service/.conf
 tests/                   Playwright specs (browser/*.spec.mjs, fixtures/, helpers/)
 docs/                    verification.md (figures audit + primary sources) · native.md · release-notes.md
-                         media/ (README GIFs) · measurements/
+                         qcs6490-npu.md (complete hardware procedure) · media/ · measurements/
 native/                  android/ + windows/ WebView preview hosts + WiX installer (SOURCE tracked; build
-                         artifacts gitignored — the folder is ~1.1 GB locally, almost all ignored)
+                         artifacts and local SDK/model caches are gitignored)
 .github/workflows/       ci.yml (verify + android + windows) · deploy.yml (Pages, chained on CI) · release.yml (tags)
+                         arduino-connector.yml (separate path-filtered Python checks)
+arduino/                 app/ (illustrative Python/LED host) · bench/ (measured-rate viewer) · scripts/ · tests/
 ```
 
 ---
@@ -96,11 +115,24 @@ native/                  android/ + windows/ WebView preview hosts + WiX install
   per-accelerator utilisation toward the active workload profile; `refreshMetrics`
   derives TOPS / tokens/s / power from the current `SimConfig`. A returning
   background tab must not dump catch-up (visibility resets the clock). `paused`
-  freezes both the sim and the dataflow (`main.ts` passes `simDt = 0`).
+  freezes both the sim and the dataflow (the fixed-step clock receives a false
+  running flag). Reset restarts state/animation but keeps configured coefficients;
+  settings **Restore defaults** resets those coefficients.
 - **World** reads `SimState` only. Each district builder returns
   `{ group, update(dt, s) }` (`DistrictBuild`) and is assembled in `city.ts`.
 - **UI** is DOM built with the tiny `el()` helper (`src/ui/dom.ts`); it emits and
   listens on the typed bus. Overlays expose `{ toggle, close, readonly open }`.
+- **Measurements** stay separate: local adapters report server timings with an
+  unverified hardware backend; native CPU/QNN actions check arithmetic outputs;
+  App Lab messages set a separate readout and select a simulation precision.
+  The offline QCS6490 JSON report is not automatically ingested by the UI.
+  The QCS6490 gateway is a separate live source: explicit vision calls require
+  HTP profiles, language/VLM uses the retained CPU worker, and idle dispatches
+  nothing. It does not report global NPU utilization or power. Model selection
+  and simulation workload changes must not automatically start inference.
+- **Arduino** has independent browser and Python model states. The current
+  browser does not poll the illustrative telemetry API; do not document LED
+  synchronization that is not implemented. See [arduino/README.md](arduino/README.md).
 
 ---
 
@@ -159,6 +191,25 @@ native/                  android/ + windows/ WebView preview hosts + WiX install
   runs under `npm test`. Browser behaviour: a Playwright spec in
   `tests/browser/`. Keep counts/selectors in sync with the DOM you changed.
 
+### Extend NPU validation
+- Read [docs/qcs6490-npu.md](docs/qcs6490-npu.md) before changing the exporter,
+  fixtures, runtime selection, profiling parser, or measured claims.
+- Keep C++ fixture export and Python oracle calculations independent. Require
+  every output comparison and positive per-execution accelerator/operator
+  evidence; skip-only tests, enumeration, and tool exit status alone cannot pass.
+- The current path is QAIRT `qnn-net-run` on QCS6490, not a generic LLM adapter.
+  Do not weaken provider checks or substitute CPU timings to make it pass.
+- For the deployed gateway, retain the exact MobileNet model/runtime provenance,
+  CPU-reference comparison and per-request positive convolution evidence. The
+  original VLM worker remains CPU-only behind the gateway. Preserve its API,
+  authentication headers and streaming behavior; use the documented reversible
+  systemd override, not destructive replacement of the model files or unit.
+- Keep licensed SDK headers/libraries, firmware, models, keys and raw board
+  artifacts outside Git. Record provenance and content hashes when retaining a
+  new measurement; do not silently rewrite a prior preflight into a success.
+- Update the NPU guide, README result summary and verification boundaries
+  together when the workload or verified support changes.
+
 ---
 
 ## 5. Testing, CI, release & deploy
@@ -168,16 +219,34 @@ if you touched anything rendered — `npm run test:browser` and `npm run test:ap
 
 - **CI** (`.github/workflows/ci.yml`) runs three jobs: `verify` (install, audit,
   typecheck, coverage, Playwright browser + app tests, model + release checks,
-  artifact upload), then `android` and `windows` native builds.
+  web packaging, Debian package/install/remove checks, artifact upload), then
+  `android` and `windows` native builds.
 - **Deploy** (`.github/workflows/deploy.yml`) runs via `workflow_run` **after CI
   succeeds** and publishes `dist/` to GitHub Pages. ⇒ **The web app only goes
-  live when the *entire* CI matrix (verify + android + windows) is green.** A
+  live when the *entire* CI matrix (verify, including Debian packaging, + android + windows) is green.** A
   broken native build blocks the web deploy.
-- **Release** (`.github/workflows/release.yml`) runs on `v*.*.*` tags and drafts a
-  GitHub Release with three assets (names defined in `tools/release.mjs`):
+- **Release** (`.github/workflows/release.yml`) runs on `v*.*.*` tags or manual
+  dispatch and reuses CI. Tag-only publication requires four assets plus
+  `SHA256SUMS` (names defined in `tools/release.mjs`):
   `HexagonNPUSimCity-web.zip`, `HexagonNPUSimCity-arm64-cpu-preview.apk`,
-  `HexagonNPUSimCity-arm64.msi`. The in-app **Get the app** QR codes point at
-  `…/releases/latest/download/<asset>`, so they resolve once a release is tagged.
+  `HexagonNPUSimCity-arm64.msi`, `HexagonNPUSimCity-all.deb`. A new release is a
+  draft; an existing release receives replacement assets via `--clobber` without
+  a visibility change. A manual branch run packages but skips publication.
+- **Download links:** the three in-app installer QR codes use
+  `.../releases/latest/download/<asset>`. They require an eligible published
+  release with those exact assets. A tag or draft alone is insufficient.
+- **Separate checks:** Arduino tests run in their own path-filtered workflow.
+  QCS6490 Python tests and physical-board validation are manual gates today;
+  neither is run by `npm test` or the main CI workflow.
+
+| Changed surface | Required relevant checks |
+| --- | --- |
+| Web/core/simulation | Typecheck and Node tests; build and both Playwright suites for rendered changes |
+| Packaging/release | Package/release tests; produce/inspect the affected artifact on its supported host |
+| Arduino | `arduino/scripts/test-local.sh`; actual App Lab/LED checks for hardware claims |
+| QCS6490 validator | Python validator tests, native ARM64 exporter build, and physical HTP output/profile checks |
+| QCS6490 gateway | Runtime Python tests; real vision/reference/profile, CPU language/VLM and idle checks; both browser suites for panel changes |
+| Documentation | Parse local links/anchors, check commands/assets against source, and compare numeric tables with authoritative config/reports |
 
 ---
 
@@ -185,18 +254,22 @@ if you touched anything rendered — `npm run test:browser` and `npm run test:ap
 
 `native/android` (Gradle/Java WebView host) and `native/windows` (WebView2 + WiX
 MSI) wrap the web build as installable previews. Only **source** is tracked; the
-local folder balloons to ~1.1 GB of SDKs/build outputs that `.gitignore` excludes.
+local folder may contain large SDK/build outputs that `.gitignore` excludes.
 See `docs/native.md`. The web app never imports `native/` — it talks to an
 optional native runner over a WebView message channel (`src/runtime/`).
+
+The Debian package is static files plus a loopback Python launcher, built by
+`tools/deb.mjs`, not another native inference host. The independent QCS6490
+tools export/execute/check a QAIRT graph and do not come with the installers.
 
 ---
 
 ## 7. Gotchas (learned the hard way)
 
-- **Don't fear `native/`'s 1.1 GB.** `git add -A` / `git add native/` respect
-  `.gitignore` and stage only the ~17 source files. But **never** hand-exclude
-  all of `native/` — CI's `android`/`windows` jobs build that source, and
-  dropping it turns CI red (which blocks the deploy).
+- **Keep native sources, exclude artifacts.** Review Git status and ignores
+  before staging. Do not hand-exclude all of `native/`; CI needs its tracked
+  Android/Windows sources. Do not stage SDKs, models, build outputs, or unrelated
+  work just because they sit beside those sources.
 - **Adding/removing a toolbar button** breaks the hard-coded counts in
   `src/ui/ui.test.mjs` and `tests/browser/app.spec.mjs`. Update both.
 - **Large pushes** (e.g. adding GIFs/binaries) can fail with `HTTP 400`

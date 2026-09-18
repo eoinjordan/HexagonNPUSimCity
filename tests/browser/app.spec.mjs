@@ -120,3 +120,69 @@ test('keyboard workload, reset, help and persisted theme work end to end', async
   await expect(page.locator('#boot')).toBeHidden()
   await expect(page.locator('html')).toHaveAttribute('data-theme', expectedTheme)
 })
+
+test('QCS6490 gateway keeps vision, CPU language and idle measurements distinct', async ({ page }, testInfo) => {
+  const requests = []
+  let invalidVision = false
+  await page.route('**/api/runtime/**', async (route) => {
+    const request = route.request()
+    requests.push(request.method())
+    if (request.method() === 'GET') {
+      await route.fulfill({ json: { models: ['MobileNet', 'oddessy-vlm', 'No inference'], workloads: [
+        { id: 'vision-conv', backend: 'qnn-htp', model: 'MobileNet' },
+        { id: 'llm-decode', backend: 'cpu', model: 'oddessy-vlm' },
+        { id: 'idle', backend: 'none', model: 'No inference' },
+      ] } })
+      return
+    }
+    const uploaded = request.url().endsWith('/vision')
+    const workload = uploaded ? 'vision-conv' : request.postDataJSON().workload
+    const result = workload === 'vision-conv'
+      ? { backend: invalidVision ? 'cpu' : 'qnn-htp', cpuFallback: false, top5: [{ label: 'Fixture classification' }], profile: { executionMs: 7.39, acceleratorCycles: 4000, acceleratorExecutionVerified: true, convolutionOperators: [{ cycles: 1200 }] } }
+      : workload === 'llm-decode'
+        ? { backend: 'cpu', generatedTokens: 32, generationMs: 6400, acceleratorExecutionVerified: false }
+        : { backend: 'none', inferenceRequested: false, busy: false }
+    await route.fulfill({ json: { source: 'qcs6490', workload, ...result } })
+  })
+  await page.goto('./?runtime=qcs6490')
+  await page.clock.fastForward(1100)
+  const panel = page.locator('#runtime-panel')
+  const status = panel.locator('.runtime-status').first()
+  const workload = page.getByRole('combobox', { name: 'Measured workload', exact: true })
+  await expect(panel).toHaveAttribute('open', '')
+  expect(requests).toEqual([])
+  await page.getByRole('button', { name: 'Connect', exact: true }).click()
+  await expect(status).toContainText('vision: QNN HTP | LLM: CPU')
+  await expect(page.getByRole('combobox', { name: 'Local model', exact: true })).toBeHidden()
+  await page.getByRole('button', { name: 'Run vision sample', exact: true }).click()
+  await expect(status).toContainText('NPU vision | Fixture classification | 7.390 ms')
+  await page.clock.fastForward(40)
+  await expect(page.locator('#workload')).toHaveValue('vision-conv')
+  expect(requests.length).toBe(2)
+  await workload.selectOption('llm-decode')
+  await expect(page.getByLabel('Vision image (optional)', { exact: true })).toBeHidden()
+  expect(requests.length).toBe(2)
+  await page.getByRole('button', { name: 'Run CPU LLM sample', exact: true }).click()
+  await expect(status).toContainText('CPU LLM | 5.00 tokens/s')
+  await expect(status).toContainText('no NPU LLM support')
+  await workload.selectOption('idle')
+  await page.getByRole('button', { name: 'Confirm idle', exact: true }).click()
+  await expect(status).toContainText('Idle | no inference dispatched')
+  await page.clock.fastForward(40)
+  await expect(page.locator('#workload')).toHaveValue('idle')
+  await workload.selectOption('vision-conv')
+  const image = page.getByLabel('Vision image (optional)', { exact: true })
+  await image.setInputFiles({ name: 'sample.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aN1sAAAAASUVORK5CYII=', 'base64') })
+  await page.getByRole('button', { name: 'Run vision sample', exact: true }).click()
+  await expect(status).toContainText('NPU vision')
+  await page.clock.fastForward(40)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  const panelBounds = await panel.boundingBox()
+  expect(panelBounds.x).toBeGreaterThanOrEqual(0)
+  expect(panelBounds.x + panelBounds.width).toBeLessThanOrEqual(page.viewportSize().width)
+  await page.screenshot({ path: testInfo.outputPath('qcs6490-runtime.png') })
+  invalidVision = true
+  await page.getByRole('button', { name: 'Run vision sample', exact: true }).click()
+  await expect(status).toHaveText('Vision result lacks valid HTP execution evidence')
+  await expect(page.getByRole('button', { name: 'Run vision sample', exact: true })).toBeEnabled()
+})

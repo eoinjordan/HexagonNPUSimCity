@@ -16,23 +16,31 @@ telemetry on the board. Two "brains":
 
 `bench/` is a second, independent App: it runs a real `llama-bench` quantization
 sweep and drives the *embedded* web app with the measured token rates. App Lab
-runs one App at a time, so the two never run together.
+runs one App at a time; its separate host-side `hexsim-sweep` user service can
+continue running when another App is selected.
 
 ## Ground rules
 
-- **Illustrative only.** Never present figures as measured NPU counters. Keep
+- **Keep modes distinct.** Never present illustrative figures or reported token
+  rates as measured NPU utilization/power counters. Keep
   `hexagon_model.py` in sync with `src/sim/model.ts` and `docs/verification.md`.
   FP16 is *reduced precision*, not integer quantization — keep `QUANTIZED` honest.
-- **Never claim an NPU ran the work.** Dragonwing IQ-class boards (e.g. VENTUNO Q,
-  IQ8) expose a cDSP hosting an HTP; the UNO Q's QRB2210 exposes only
-  `/dev/fastrpc-adsp` and cannot load llama.cpp's Hexagon backend. `bench/` must
-  keep labelling each result from the `backends` field llama-bench reports, via
-  `describe_backend()` — never from hardware probing alone, since an NPU-capable
-  board can still be running a CPU-only build.
+- **Verify before claiming NPU execution.** The supplied UNO Q setup builds
+  CPU llama.cpp. `describe_backend()` uses the first row's reported backend
+  string; this heuristic is not an output check or offload trace. A cDSP node
+  only triggers an offload request. Do not infer execution from hardware
+  capability or labels. The stronger, separate
+  [QCS6490 validation](../docs/qcs6490-npu.md) requires exact outputs and HTP profiles.
+- **Do not invent synchronization.** The Python and browser models share
+  defaults, not state. The web build does not poll `/api/telemetry`; changes
+  through the illustrative API/MCU affect the Python model and LEDs only.
+  The Python model omits the web jitter and initializes base power immediately.
+  App Lab measured messages update a separate readout and display precision,
+  not the simulated utilization/TOPS/power counters.
 - **A rate that wasn't reported stays `null`.** Never derive tokens/sec from wall
   time as a stand-in, in either `bench-sweep.py` or `src/runtime/applab.ts`.
 - **Standard library only** on the Python side (plus the on‑device
-  `arduino.app_utils`). If you must add a package, list it in
+  `arduino.app_utils` and the bench app's `web_ui` Brick). If you must add a package, list it in
   `app/python/requirements.txt` — App Lab installs it with `uv`.
 - **Keep the model testable off‑device.** `hexagon_model.py` and `server.py` must
   import nothing from `arduino.app_utils`. Only `main.py` may (it runs on the
@@ -40,6 +48,11 @@ runs one App at a time, so the two never run together.
 - **Bridge safety.** Never call `Bridge.call()` / `Monitor.print()` inside a
   function registered with `Bridge.provide()`; use `provide_safe()` for callbacks
   that touch `digitalWrite`/globals. Keep the MCU `loop()` free of long `delay()`.
+- **Trusted LAN only.** The illustrative HTTP server binds `0.0.0.0` with
+  unauthenticated controls. The measured browser bridge accepts loopback,
+  private IPv4 and `.local` origins, not signed measurements. Do not document
+  either as a public, authenticated service or as equivalent to the stricter
+  loopback runtime proxy.
 
 ## Common changes
 

@@ -647,6 +647,10 @@ kbd {
   gap: 4px;
 }
 
+.runtime-fields [hidden] {
+  display: none !important;
+}
+
 .runtime-fields input,
 .runtime-fields select {
   width: 100%;

@@ -145,7 +145,7 @@ const tour = createTour(bus)
 const help = createHelp(bus)
 const settings = createSettings(bus, sim)
 const getApp = createGetApp()
-const runtimePanel = createRuntimePanel(document.getElementById('hud')!)
+const runtimePanel = createRuntimePanel(document.getElementById('hud')!, fetch, bus)
 
 // A ring that sits under the selected district.
 const ringMat = new THREE.MeshStandardMaterial({
