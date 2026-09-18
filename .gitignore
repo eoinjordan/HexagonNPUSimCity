@@ -19,6 +19,7 @@ yarn-error.log*
 **/*.keystore
 /native/windows/publish/
 /release/
+/build/
 __pycache__/
 *.pyc
 /arduino/app/python/web/

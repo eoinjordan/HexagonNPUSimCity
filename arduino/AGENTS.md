@@ -23,10 +23,12 @@ runs one App at a time, so the two never run together.
 - **Illustrative only.** Never present figures as measured NPU counters. Keep
   `hexagon_model.py` in sync with `src/sim/model.ts` and `docs/verification.md`.
   FP16 is *reduced precision*, not integer quantization — keep `QUANTIZED` honest.
-- **The board has no NPU.** QRB2210 exposes only `/dev/fastrpc-adsp`; there is no
-  cDSP, so llama.cpp's Hexagon backend cannot load. `bench/` measures the CPU and
-  must keep saying so. Don't relabel a CPU number as `hexagon-htp`; let
-  `detect_backend()` decide from `/dev/fastrpc-cdsp`.
+- **Never claim an NPU ran the work.** Dragonwing IQ-class boards (e.g. VENTUNO Q,
+  IQ8) expose a cDSP hosting an HTP; the UNO Q's QRB2210 exposes only
+  `/dev/fastrpc-adsp` and cannot load llama.cpp's Hexagon backend. `bench/` must
+  keep labelling each result from the `backends` field llama-bench reports, via
+  `describe_backend()` — never from hardware probing alone, since an NPU-capable
+  board can still be running a CPU-only build.
 - **A rate that wasn't reported stays `null`.** Never derive tokens/sec from wall
   time as a stand-in, in either `bench-sweep.py` or `src/runtime/applab.ts`.
 - **Standard library only** on the Python side (plus the on‑device

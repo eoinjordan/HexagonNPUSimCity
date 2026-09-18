@@ -129,19 +129,25 @@ showing the illustrative model, it **measures** something real. It runs
 visualization with the results, so switching format visibly changes the city
 because the *measurement* changed.
 
-> **This board has no NPU.** The QRB2210 exposes only `/dev/fastrpc-adsp` and an
-> `adsp` remoteproc entry — there is no cDSP, no `/usr/lib/rfsa`, and no QNN
-> libraries. llama.cpp's Hexagon backend loads `libggml-htp-v*.so` into the
-> **cDSP** domain, so it cannot run here. `bench-sweep.py` probes for
-> `/dev/fastrpc-cdsp` and reports `backend: "cpu"` accordingly; the UI says so.
+> **Which board has an NPU?** The **VENTUNO Q** pairs a Qualcomm Dragonwing IQ8
+> (up to 40 dense TOPS) with an STM32H5, and Dragonwing IQ-class parts expose a
+> compute DSP hosting an HTP — the device llama.cpp's Hexagon backend targets.
+> The **UNO Q**'s QRB2210 does not: it exposes only `/dev/fastrpc-adsp` and an
+> `adsp` remoteproc, with no cDSP, no `/usr/lib/rfsa` and no QNN libraries, so
+> the Hexagon backend cannot load there and llama.cpp measures its CPU.
+>
+> `bench-sweep.py` never assumes either way. It offloads to `HTP0` when
+> `/dev/fastrpc-cdsp` exists, then labels each result from the `backends` field
+> **llama-bench itself reports** — so a board that has an NPU but a CPU-only
+> llama.cpp build is still reported as `cpu`.
 
 ```bash
-# 1) One-time on the board: build llama.cpp (CPU) and fetch the GGUFs (~700 MB).
-scp arduino/scripts/bench-setup-board.sh echoglow-eoin:~/ && ssh echoglow-eoin ~/bench-setup-board.sh
+# 1) One-time on the board: build llama.cpp and fetch the GGUFs (~700 MB).
+scp arduino/scripts/bench-setup-board.sh <board>:~/ && ssh <board> ~/bench-setup-board.sh
 
 # 2) Install the App and the sweep service, then start it.
-arduino/scripts/bench-deploy.sh arduino@echoglow-eoin
-ssh echoglow-eoin 'arduino-app-cli app start user:hexagon_npu_simcity'
+arduino/scripts/bench-deploy.sh arduino@<board>
+ssh <board> 'arduino-app-cli app start user:hexagon_npu_simcity'
 ```
 
 Open `http://<board>:7000/`. App Lab runs **one App at a time**, so starting the

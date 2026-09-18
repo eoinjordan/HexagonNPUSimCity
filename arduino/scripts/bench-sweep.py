@@ -27,18 +27,29 @@ DEFAULT_OUT = HOME / "ArduinoApps" / "hexagon_npu_simcity" / "data" / "sweep.jso
 # city walks from the most aggressive quantization up to full half precision.
 QUANT_ORDER = ["Q4_0", "Q4_K_M", "Q5_K_M", "Q8_0", "F16"]
 
+# Present on boards whose Hexagon has a compute DSP hosting an HTP (Dragonwing
+# IQ-class parts such as the VENTUNO Q). Absent on the UNO Q's QRB2210, which
+# exposes only /dev/fastrpc-adsp.
+HEXAGON_NODE = Path("/dev/fastrpc-cdsp")
 
-def detect_backend() -> tuple[str, str]:
-    """Return (backend, device) for this board.
 
-    The QRB2210 exposes only /dev/fastrpc-adsp and an `adsp` remoteproc. The
-    llama.cpp Hexagon backend needs a cDSP hosting an HTP, so anything measured
-    here is the CPU. This probes rather than assuming, so the same script
-    reports honestly on a board that does have an NPU.
+def hexagon_available() -> bool:
+    return HEXAGON_NODE.exists()
+
+
+def describe_backend(rows: list[dict]) -> tuple[str, str]:
+    """Report the backend llama-bench actually ran on.
+
+    Taken from the tool's own `backends`/`devices` fields rather than inferred
+    from the hardware, so a board that has an NPU but a CPU-only llama.cpp build
+    is still reported as CPU.
     """
-    if Path("/dev/fastrpc-cdsp").exists():
-        return "hexagon-htp", "HTP0"
-    return "cpu", "CPU"
+    backends = str(rows[0].get("backends", "") if rows else "").strip()
+    devices = str(rows[0].get("devices", "") if rows else "").strip()
+    label = backends or "CPU"
+    hexagon = "htp" in label.lower() or "hexagon" in label.lower()
+    device = devices if devices and devices.lower() not in {"auto", "none", ""} else label
+    return ("hexagon-htp" if hexagon else "cpu"), device or "CPU"
 
 
 def parse_rows(rows: list[dict]) -> tuple[float | None, float | None]:
@@ -60,16 +71,21 @@ def parse_rows(rows: list[dict]) -> tuple[float | None, float | None]:
 
 def bench(model: Path, threads: int, n_prompt: int, n_gen: int, reps: int) -> list[dict]:
     env = dict(os.environ, LD_LIBRARY_PATH=str(LLAMA / "lib"))
+    args = [
+        str(LLAMA / "bin" / "llama-bench"),
+        "-m", str(model),
+        "-p", str(n_prompt),
+        "-n", str(n_gen),
+        "-r", str(reps),
+        "-t", str(threads),
+        "-o", "json",
+    ]
+    if hexagon_available():
+        # The Hexagon backend is offload-based, so it takes -ngl like a GPU.
+        env.setdefault("GGML_HEXAGON_DEVICES", "HTP0")
+        args += ["-ngl", "99"]
     result = subprocess.run(
-        [
-            str(LLAMA / "bin" / "llama-bench"),
-            "-m", str(model),
-            "-p", str(n_prompt),
-            "-n", str(n_gen),
-            "-r", str(reps),
-            "-t", str(threads),
-            "-o", "json",
-        ],
+        args,
         env=env,
         capture_output=True,
         text=True,
@@ -88,16 +104,18 @@ def quant_of(path: Path) -> str | None:
 
 
 def sweep(threads: int, n_prompt: int, n_gen: int, reps: int) -> dict:
-    backend, device = detect_backend()
     by_quant = {quant_of(p): p for p in sorted(MODELS.glob("*.gguf"))}
     samples = []
+    backend = device = None
     for quant in QUANT_ORDER:
         model = by_quant.get(quant)
         if model is None:
             continue
         print(f"[sweep] {quant} -> {model.name}", flush=True)
         try:
-            prompt, generation = parse_rows(bench(model, threads, n_prompt, n_gen, reps))
+            rows = bench(model, threads, n_prompt, n_gen, reps)
+            prompt, generation = parse_rows(rows)
+            backend, device = describe_backend(rows)
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired, json.JSONDecodeError) as exc:
             print(f"[sweep] {quant} failed: {exc}", file=sys.stderr, flush=True)
             continue
@@ -110,7 +128,7 @@ def sweep(threads: int, n_prompt: int, n_gen: int, reps: int) -> dict:
             "promptTokensPerSecond": prompt,
             "tokensPerSecond": generation,
         })
-        print(f"[sweep] {quant}: pp={prompt} tg={generation}", flush=True)
+        print(f"[sweep] {quant}: pp={prompt} tg={generation} on {backend}", flush=True)
     return {
         "generatedAt": time.time(),
         "host": os.uname().nodename,

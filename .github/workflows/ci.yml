@@ -49,6 +49,21 @@ jobs:
           name: release-web
           path: release/web/
           if-no-files-found: error
+      - name: Package Debian build
+        run: node tools/deb.mjs
+      - name: Verify the package installs and is architecture independent
+        run: |
+          dpkg-deb --info release/linux/HexagonNPUSimCity-all.deb
+          dpkg-deb --field release/linux/HexagonNPUSimCity-all.deb Architecture | grep -qx all
+          sudo apt-get install -y ./release/linux/HexagonNPUSimCity-all.deb
+          test -x /usr/bin/hexagon-npu-simcity
+          test -f /usr/lib/hexagon-npu-simcity/web/index.html
+          sudo apt-get remove -y hexagon-npu-simcity
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-linux
+          path: release/linux/
+          if-no-files-found: error
       - uses: actions/upload-artifact@v7
         if: always()
         with:

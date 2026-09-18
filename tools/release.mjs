@@ -25,12 +25,12 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     console.log(`Release version verified: ${checkReleaseVersion(process.env.RELEASE_TAG, metadata.version)}`)
   } else if (process.argv.includes('--checksums')) {
     const directory = new URL('../release/', import.meta.url)
-    const required = ['HexagonNPUSimCity-web.zip', 'HexagonNPUSimCity-arm64-cpu-preview.apk', 'HexagonNPUSimCity-arm64.msi']
+    const required = ['HexagonNPUSimCity-web.zip', 'HexagonNPUSimCity-arm64-cpu-preview.apk', 'HexagonNPUSimCity-arm64.msi', 'HexagonNPUSimCity-all.deb']
     const files = await readdir(directory)
     for (const name of required) if (!files.includes(name)) throw new Error(`Missing release asset: ${name}`)
     const lines = await Promise.all(required.sort().map(async (name) => checksum(name, await readFile(new URL(name, directory)))))
     await writeFile(new URL('SHA256SUMS', directory), lines.join('\n') + '\n')
-    console.log('All three platform assets present; SHA256SUMS written')
+    console.log(`All ${required.length} platform assets present; SHA256SUMS written`)
   } else {
     throw new Error('Specify --check-version or --checksums')
   }

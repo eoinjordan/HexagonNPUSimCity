@@ -49,6 +49,21 @@ Android example source:
 [edgeimpulse/example-android-inferencing](https://github.com/edgeimpulse/example-android-inferencing)
 and its [QNN example](https://github.com/edgeimpulse/example-android-inferencing/tree/main/qnn-hardware-acceleration).
 
+### Linux / Raspberry Pi package
+
+Releases include a Debian package, `HexagonNPUSimCity-all.deb`. It is
+`Architecture: all` and depends only on `python3`, so the same file installs on
+an amd64 desktop and on Ubuntu or Raspberry Pi OS running arm64:
+
+```sh
+sudo apt install ./HexagonNPUSimCity-all.deb
+hexagon-npu-simcity            # serves on 127.0.0.1:8770 and opens a browser
+```
+
+It installs a desktop entry and serves the bundled build on loopback only.
+Override the port with `HEXAGON_PORT`. Build it yourself with `node tools/deb.mjs`
+after `npm run build`.
+
 ### Arduino App Lab connector
 
 An [Arduino UNO Q connector](arduino/README.md) ships two App Lab Apps:
@@ -57,8 +72,10 @@ illustrative telemetry onto the RGB LEDs, and **HexagonNPUCity Bench** runs a
 real `llama-bench` sweep across five GGUF quantizations and drives the embedded
 visualization with the measured token rates.
 
-The UNO Q's QRB2210 has **no cDSP and no HTP**, so llama.cpp measures its CPU
-there and the bench reports `backend: "cpu"`. See
+The App Lab connector targets Qualcomm Dragonwing boards. On a **VENTUNO Q**
+(Dragonwing IQ8) the Hexagon backend can target the NPU; the **UNO Q**'s QRB2210
+has no cDSP/HTP, so llama.cpp measures its CPU there. Each sample is labelled
+with the backend `llama-bench` actually reported. See
 [verification](docs/verification.md#arduino-app-lab-measurements).
 
 ## See it in motion

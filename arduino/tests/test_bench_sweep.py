@@ -56,17 +56,33 @@ class QuantOfTest(unittest.TestCase):
             self.assertIsNone(bench_sweep.quant_of(Path(name)), name)
 
 
-class DetectBackendTest(unittest.TestCase):
-    def test_reports_cpu_when_no_compute_dsp_is_present(self):
-        """The QRB2210 exposes only fastrpc-adsp, so there is no HTP to claim."""
-        original = bench_sweep.Path
-        try:
-            bench_sweep.Path = lambda p: type("P", (), {"exists": staticmethod(lambda: False)})()
-            self.assertEqual(bench_sweep.detect_backend(), ("cpu", "CPU"))
-            bench_sweep.Path = lambda p: type("P", (), {"exists": staticmethod(lambda: True)})()
-            self.assertEqual(bench_sweep.detect_backend(), ("hexagon-htp", "HTP0"))
-        finally:
-            bench_sweep.Path = original
+class DescribeBackendTest(unittest.TestCase):
+    def test_labels_cpu_when_llama_bench_ran_on_cpu(self):
+        self.assertEqual(
+            bench_sweep.describe_backend([{"backends": "CPU", "devices": "auto"}]),
+            ("cpu", "CPU"),
+        )
+
+    def test_labels_the_npu_only_when_the_tool_reports_it(self):
+        self.assertEqual(
+            bench_sweep.describe_backend([{"backends": "HTP", "devices": "HTP0"}]),
+            ("hexagon-htp", "HTP0"),
+        )
+        self.assertEqual(
+            bench_sweep.describe_backend([{"backends": "Hexagon", "devices": "auto"}]),
+            ("hexagon-htp", "Hexagon"),
+        )
+
+    def test_a_board_with_an_npu_but_a_cpu_build_is_still_reported_as_cpu(self):
+        """Hardware capability must never be mistaken for what actually ran."""
+        self.assertEqual(
+            bench_sweep.describe_backend([{"backends": "CPU", "devices": "HTP0"}]),
+            ("cpu", "HTP0"),
+        )
+
+    def test_missing_fields_fall_back_to_cpu(self):
+        self.assertEqual(bench_sweep.describe_backend([]), ("cpu", "CPU"))
+        self.assertEqual(bench_sweep.describe_backend([{}]), ("cpu", "CPU"))
 
 
 if __name__ == "__main__":
