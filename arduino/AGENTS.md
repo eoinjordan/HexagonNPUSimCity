@@ -14,11 +14,21 @@ telemetry on the board. Two "brains":
   illustrative model, drives LED1/LED2, and talks to the MCU over the Bridge.
 - **MCU (STM32/Arduino)** — `app/sketch/`: drives LED3 and reads the button.
 
+`bench/` is a second, independent App: it runs a real `llama-bench` quantization
+sweep and drives the *embedded* web app with the measured token rates. App Lab
+runs one App at a time, so the two never run together.
+
 ## Ground rules
 
 - **Illustrative only.** Never present figures as measured NPU counters. Keep
   `hexagon_model.py` in sync with `src/sim/model.ts` and `docs/verification.md`.
   FP16 is *reduced precision*, not integer quantization — keep `QUANTIZED` honest.
+- **The board has no NPU.** QRB2210 exposes only `/dev/fastrpc-adsp`; there is no
+  cDSP, so llama.cpp's Hexagon backend cannot load. `bench/` measures the CPU and
+  must keep saying so. Don't relabel a CPU number as `hexagon-htp`; let
+  `detect_backend()` decide from `/dev/fastrpc-cdsp`.
+- **A rate that wasn't reported stays `null`.** Never derive tokens/sec from wall
+  time as a stand-in, in either `bench-sweep.py` or `src/runtime/applab.ts`.
 - **Standard library only** on the Python side (plus the on‑device
   `arduino.app_utils`). If you must add a package, list it in
   `app/python/requirements.txt` — App Lab installs it with `uv`.
@@ -50,6 +60,7 @@ telemetry on the board. Two "brains":
 arduino/scripts/test-local.sh     # Python model + HTTP smoke (no board)
 arduino/scripts/run-local.sh      # preview the served sim locally
 arduino/scripts/deploy.sh <host>  # build web, copy to board, restart via App CLI
+arduino/scripts/bench-deploy.sh <user@host>   # install the measured bench App
 ```
 
 CI runs `tests/` on every change to `arduino/**`

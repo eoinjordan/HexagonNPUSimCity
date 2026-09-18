@@ -22,3 +22,5 @@ yarn-error.log*
 __pycache__/
 *.pyc
 /arduino/app/python/web/
+/arduino/bench/assets/libs/
+/arduino/bench/data/

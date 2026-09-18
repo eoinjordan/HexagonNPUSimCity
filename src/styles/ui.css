@@ -669,6 +669,23 @@ kbd {
   line-height: 1.5;
 }
 
+/* Appended to the runtime panel when a board sample arrives. */
+.applab-fields {
+  border-top: 1px solid var(--stroke);
+  padding-top: 10px;
+}
+
+.applab-model {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.applab-note {
+  margin: 0;
+  color: var(--muted, #8aa0bd);
+  line-height: 1.5;
+}
+
 .label-short {
   display: none;
 }

@@ -17,6 +17,7 @@ import { createPicker } from './engine/picker'
 import { createSim } from './sim/model'
 import { createClock } from './sim/clock'
 import { createRuntimePanel } from './runtime/panel'
+import { createAppLabBridge, createAppLabPanel } from './runtime/applab'
 
 import { createCity } from './world/city'
 import { districtById } from './world/districts'
@@ -144,7 +145,7 @@ const tour = createTour(bus)
 const help = createHelp(bus)
 const settings = createSettings(bus, sim)
 const getApp = createGetApp()
-createRuntimePanel(document.getElementById('hud')!)
+const runtimePanel = createRuntimePanel(document.getElementById('hud')!)
 
 // A ring that sits under the selected district.
 const ringMat = new THREE.MeshStandardMaterial({
@@ -193,6 +194,15 @@ bus.on('camera:home', () => rig.home())
 bus.on('pause:toggle', () => {
   sim.togglePause()
   hud.setPaused(sim.state.paused)
+})
+
+// Live measurements from an Arduino App Lab host embedding this page.
+const appLabPanel = createAppLabPanel(runtimePanel)
+createAppLabBridge({
+  onSample: (sample) => {
+    appLabPanel.show(sample)
+    bus.emit('precision:change', { value: sample.precision })
+  },
 })
 bus.on('theme:toggle', () => {
   themeMode = themeMode === 'day' ? 'night' : 'day'

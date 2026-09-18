@@ -139,6 +139,22 @@ Native CPU output-oracle tests are separate from these browser suites. Native
 HTP execution requires a supported device/runtime and is not certified by a
 successful desktop cross-build or Android APK build.
 
+## Arduino App Lab Measurements
+
+The App Lab connector (`src/runtime/applab.ts`, app in `arduino/bench/`) streams
+real `llama-bench` results from an Arduino board into the visualization. What
+those numbers do and do not establish:
+
+| Statement | Evidence and limits |
+| --- | --- |
+| The token rates are measured, not modelled | They come from `llama-bench -o json`, taken from `avg_ts` for the prompt (`n_prompt > 0`) and generation (`n_gen > 0`) rows. A rate the tool did not report stays `null` and is displayed as unavailable. |
+| On the tested board they measure the CPU, not an NPU | The Arduino UNO Q's QRB2210 (qcm2290) exposes only `/dev/fastrpc-adsp` and an `adsp` remoteproc entry. There is no `cdsp` node, no `/usr/lib/rfsa`, and no QNN/SNPE libraries. llama.cpp's Hexagon backend loads `libggml-htp-v*.so` into the **cDSP** domain, so it cannot run on this part. `sweep.py` probes for `/dev/fastrpc-cdsp` and reports `backend: "cpu"` accordingly. |
+| A quantization change is a real change | Each sample is a distinct GGUF file (`Q4_0`, `Q4_K_M`, `Q5_K_M`, `Q8_0`, `F16`) of the same model, so the throughput differences reflect genuine format cost on that CPU. |
+| The accelerator districts stay illustrative | Receiving a measured sample sets the displayed format and the on-screen readout. It does not make the scalar/HVX/HMX/VTCM animations measured; those remain the synthetic coefficients above. The readout says so when `backend` is `cpu`. |
+
+The connector accepts samples only from loopback and RFC1918 origins, so a page
+on the public internet cannot drive the visualization.
+
 Actual quantized-model validation requires a chosen device and runtime, a known
 model and representative calibration/evaluation data, float-versus-quantized
 output comparison, task accuracy evaluation and on-device profiling. Qualcomm's

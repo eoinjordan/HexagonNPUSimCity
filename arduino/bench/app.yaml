@@ -1,0 +1,8 @@
+name: HexagonNPUCity Bench
+icon: 🔷
+description: Runs a llama.cpp quantization sweep on the board and drives the HexagonNPUSimCity 3D visualization with the measured token rates.
+version: "0.1.0"
+ports:
+  - 7000
+bricks:
+  - arduino:web_ui

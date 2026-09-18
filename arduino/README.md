@@ -57,8 +57,14 @@ arduino/
     sketch/
       sketch.ino            MCU: LED3 pulse + optional button, over the Bridge
       sketch.yaml           board/library config (App Lab manages this)
-  tests/                    Python model + HTTP smoke tests (no board needed)
+  bench/                    companion App: measured llama.cpp quantization sweep
+    app.yaml                manifest (web_ui brick, port 7000)
+    python/main.py          reads the sweep and streams it over WebSocket
+    assets/                 page that embeds the live sim and relays samples
+    data/sweep.json         written by the host-side sweep (not in git)
+  tests/                    Python model + HTTP smoke + sweep tests (no board needed)
   scripts/                  setup-ssh · deploy · run-local · test-local
+                            bench-setup-board · bench-sweep · bench-deploy
   AGENTS.md                 how to extend this connector
 ```
 
@@ -114,6 +120,59 @@ container.
 - **Figures** — edit `DEFAULT_CONFIG` in
   [app/python/hexagon_model.py](app/python/hexagon_model.py); keep it in sync with
   `src/sim/model.ts` and `docs/verification.md`.
+
+## Companion App — HexagonNPUCity Bench (measured)
+
+`bench/` is a second App Lab App that does the opposite of `app/`: instead of
+showing the illustrative model, it **measures** something real. It runs
+`llama-bench` over five GGUF quantizations of one model and drives the embedded
+visualization with the results, so switching format visibly changes the city
+because the *measurement* changed.
+
+> **This board has no NPU.** The QRB2210 exposes only `/dev/fastrpc-adsp` and an
+> `adsp` remoteproc entry — there is no cDSP, no `/usr/lib/rfsa`, and no QNN
+> libraries. llama.cpp's Hexagon backend loads `libggml-htp-v*.so` into the
+> **cDSP** domain, so it cannot run here. `bench-sweep.py` probes for
+> `/dev/fastrpc-cdsp` and reports `backend: "cpu"` accordingly; the UI says so.
+
+```bash
+# 1) One-time on the board: build llama.cpp (CPU) and fetch the GGUFs (~700 MB).
+scp arduino/scripts/bench-setup-board.sh echoglow-eoin:~/ && ssh echoglow-eoin ~/bench-setup-board.sh
+
+# 2) Install the App and the sweep service, then start it.
+arduino/scripts/bench-deploy.sh arduino@echoglow-eoin
+ssh echoglow-eoin 'arduino-app-cli app start user:hexagon_npu_simcity'
+```
+
+Open `http://<board>:7000/`. App Lab runs **one App at a time**, so starting the
+bench stops `HexagonNPUCity` and vice versa.
+
+### How it reaches the visualization
+
+App Lab runs application Python in a container that bind-mounts only the app
+directory, so the sweep cannot be executed from inside it. Instead the sweep runs
+on the board host and hands results over through a file; no extra port is opened.
+
+```
+host: bench-sweep.py ──► bench/data/sweep.json ──► container: python/main.py
+                                                        │ WebSocket (web_ui brick)
+                                                        ▼
+                                              assets/app.js
+                                                        │ postMessage
+                                                        ▼
+                          <iframe> eoinjordan.github.io/HexagonNPUSimCity/
+                                          src/runtime/applab.ts
+```
+
+The embedded page accepts samples only from loopback and RFC1918 origins, and
+replies `ready` to the sender's own origin — never `*`.
+
+| Knob | Where |
+| --- | --- |
+| Models / quantizations swept | `QUANTS` in [scripts/bench-setup-board.sh](scripts/bench-setup-board.sh) and `QUANT_ORDER` in [scripts/bench-sweep.py](scripts/bench-sweep.py) |
+| Sweep interval | `--loop` in the `hexsim-sweep` user service |
+| Seconds each format is shown | `DWELL_SECONDS` in [bench/python/main.py](bench/python/main.py) |
+| GGUF → simulation format map | `QUANT_PRECISION` in [../src/runtime/applab.ts](../src/runtime/applab.ts) |
 
 ## References
 

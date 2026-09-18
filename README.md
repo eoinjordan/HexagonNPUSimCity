@@ -49,6 +49,18 @@ Android example source:
 [edgeimpulse/example-android-inferencing](https://github.com/edgeimpulse/example-android-inferencing)
 and its [QNN example](https://github.com/edgeimpulse/example-android-inferencing/tree/main/qnn-hardware-acceleration).
 
+### Arduino App Lab connector
+
+An [Arduino UNO Q connector](arduino/README.md) ships two App Lab Apps:
+**HexagonNPUCity** hosts this visualization on the board and mirrors its
+illustrative telemetry onto the RGB LEDs, and **HexagonNPUCity Bench** runs a
+real `llama-bench` sweep across five GGUF quantizations and drives the embedded
+visualization with the measured token rates.
+
+The UNO Q's QRB2210 has **no cDSP and no HTP**, so llama.cpp measures its CPU
+there and the bench reports `backend: "cpu"`. See
+[verification](docs/verification.md#arduino-app-lab-measurements).
+
 ## See it in motion
 
 > Recorded from the running app. Everything on screen is **illustrative** (a teaching model), not a hardware measurement.

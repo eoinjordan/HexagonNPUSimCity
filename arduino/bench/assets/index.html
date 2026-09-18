@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hexagon NPU SimCity — measured on this board</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header id="bar">
+      <div class="title">
+        <strong>Hexagon NPU SimCity</strong>
+        <span id="status">Connecting to the board…</span>
+      </div>
+      <ol id="quants" aria-label="Quantization sweep"></ol>
+      <p id="caveat" hidden></p>
+    </header>
+
+    <!-- The public build of the visualization, driven live over postMessage. -->
+    <iframe
+      id="city"
+      title="HexagonNPUSimCity"
+      src="https://eoinjordan.github.io/HexagonNPUSimCity/"
+      referrerpolicy="no-referrer"
+      allow="fullscreen"
+    ></iframe>
+
+    <script src="libs/socket.io.min.js"></script>
+    <script src="libs/arduino.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
