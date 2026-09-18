@@ -1,6 +1,6 @@
 import { type Bus } from '../core/bus'
 import { COLOR } from '../core/theme'
-import type { SimState } from '../core/types'
+import type { Precision, SimState } from '../core/types'
 import { fmtNum, hexCss } from '../core/util'
 import { PRECISIONS, WORKLOADS } from '../sim/model'
 import { DISTRICTS } from '../world/districts'
@@ -61,6 +61,36 @@ export function createHud(deps: HudDeps): Hud {
   })
   for (const p of PRECISIONS) precisionSel.append(el('option', { value: p, text: p }))
   precisionSel.value = deps.initial.precision
+
+  // Explicit quantization badge + short expandable note. Choosing a Format *is*
+  // choosing a level of quantization; make that legible to students.
+  const QUANT: Record<Precision, { tag: string; bits: string; color: string; line: string }> = {
+    INT4: { tag: 'Quantized', bits: '4-bit integer · INT4', color: '#ff6a3d', line: 'INT4 packs each value into 4 bits — the most aggressive quantization here: smallest and fastest, but the largest rounding error.' },
+    INT8: { tag: 'Quantized', bits: '8-bit integer · INT8', color: '#ffb020', line: 'INT8 stores weights and activations as 8-bit integers — a common on-device balance of size, speed and accuracy.' },
+    INT16: { tag: 'Quantized', bits: '16-bit integer · INT16', color: '#35d07f', line: 'INT16 keeps more range and precision than INT8 — lighter quantization, but larger and slower.' },
+    FP16: { tag: 'Reduced precision', bits: '16-bit float · FP16', color: '#22d3ee', line: 'FP16 is a 16-bit floating-point format — reduced precision, but not integer quantization (no scale or zero-point).' },
+  }
+  const quantDot = el('span', { class: 'quant-dot' })
+  const quantTag = el('span', { class: 'quant-tag' })
+  const quantBits = el('span', { class: 'quant-bits' })
+  const quantLine = el('p', { class: 'quant-line' })
+  const quant = el('details', { class: 'quant', id: 'quant-note' }, [
+    el('summary', { class: 'quant-summary', 'aria-label': 'Current quantization level — activate for a short explanation' }, [
+      quantDot,
+      el('span', { class: 'quant-text' }, [quantTag, quantBits]),
+      el('span', { class: 'quant-caret', 'aria-hidden': 'true', text: 'ⓘ' }),
+    ]),
+    el('div', { class: 'quant-pop' }, [
+      quantLine,
+      el('p', { class: 'quant-generic', text: 'Quantization runs the model at lower numeric precision to shrink memory and speed up inference. INT4/INT8/INT16 store weights and activations as small integers (value ≈ scale × (int − zero-point)); fewer bits are smaller and faster but add rounding error. The figures here are illustrative.' }),
+      el('a', { class: 'quant-link', href: 'https://github.com/eoinjordan/HexagonNPUSimCity/blob/main/docs/verification.md', target: '_blank', rel: 'noopener', text: 'The arithmetic & sources ↗' }),
+    ]),
+  ])
+  const quant0 = QUANT[deps.initial.precision]
+  quantTag.textContent = quant0.tag
+  quantBits.textContent = quant0.bits
+  quantDot.style.color = quant0.color
+  quantLine.textContent = quant0.line
 
   top.append(
     brand,
@@ -139,6 +169,7 @@ export function createHud(deps: HudDeps): Hud {
   const bVtcm = bar('VTCM', COLOR.vtcm)
 
   bottom.append(
+    quant,
     el('div', { class: 'metrics' }, [
       el('p', { id: 'model-caveat', class: 'metrics-note', text: 'Illustrative model - not hardware measurements' }),
       mTops.node, mTok.node, mPow.node, mWork.node,
@@ -151,6 +182,11 @@ export function createHud(deps: HudDeps): Hud {
   function update(s: SimState): void {
     workloadSel.value = s.workload
     precisionSel.value = s.precision
+    const q = QUANT[s.precision]
+    quantTag.textContent = q.tag
+    quantBits.textContent = q.bits
+    quantDot.style.color = q.color
+    quantLine.textContent = q.line
     mTops.v.innerHTML = `${fmtNum(s.tops)} <small>${s.precision}</small>`
     mTok.v.textContent = s.tokensPerSec > 0.5 ? fmtNum(s.tokensPerSec) : '—'
     mPow.v.innerHTML = `${s.powerWatts.toFixed(1)} <small>W</small>`

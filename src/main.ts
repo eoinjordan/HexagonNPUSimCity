@@ -2,6 +2,7 @@ import * as THREE from 'three'
 
 import './styles/tokens.css'
 import './styles/ui.css'
+import './styles/quantization.css'
 
 import { createBus } from './core/bus'
 import type { DistrictId, Precision, WorkloadId } from './core/types'
