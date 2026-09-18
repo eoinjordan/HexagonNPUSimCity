@@ -166,6 +166,13 @@ src/
   main.ts   boot + wiring
 ```
 
+## Contributing & extending
+
+New here — or an AI agent picking this up? Start with **[AGENTS.md](AGENTS.md)**:
+architecture, conventions, the CI/deploy pipeline, and copy-paste recipes for
+adding a district, workload, illustrative figure, UI overlay or dataflow.
+[CONTRIBUTING.md](CONTRIBUTING.md) is the short version.
+
 ## License
 
 [Apache-2.0](LICENSE). See [NOTICE](NOTICE) for trademarks and the model disclaimer.
