@@ -15,7 +15,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Workload.cs" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4191.47" />
-    <PackageReference Include="Microsoft.ML.OnnxRuntime.QNN" Version="1.23.2" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.QNN" Version="1.24.4" />
     <Content Include="../../dist/**/*" Link="web/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../models/matmul-qdq.onnx" Link="models/matmul-qdq.onnx" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../LICENSE;../../NOTICE" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
