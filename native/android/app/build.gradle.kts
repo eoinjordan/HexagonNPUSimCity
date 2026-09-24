@@ -42,7 +42,7 @@ dependencies {
     implementation("androidx.webkit:webkit:1.12.1")
     val qnnAar = providers.gradleProperty("qnnAar").orNull
     if (qnnAar == null) {
-        implementation("com.microsoft.onnxruntime:onnxruntime-android:1.23.2")
+        implementation("com.microsoft.onnxruntime:onnxruntime-android:1.30.0")
     } else {
         require(file(qnnAar).isFile) { "qnnAar must point to an existing QNN-enabled ONNX Runtime AAR" }
         implementation(files(qnnAar))
