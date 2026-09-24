@@ -4,11 +4,11 @@
     "net10.0-windows7.0": {
       "Microsoft.ML.OnnxRuntime.QNN": {
         "type": "Direct",
-        "requested": "[1.23.2, )",
-        "resolved": "1.23.2",
-        "contentHash": "YNSRDre3rQLJQIfqVHuX9yoFsyv+Mi4MG7ocRudcdLvsrfL6NQllFPeHDXyn+ro+uPn5Lty4sVdVLsThVvs2Pg==",
+        "requested": "[1.24.4, )",
+        "resolved": "1.24.4",
+        "contentHash": "CFPkLq0o+ZnzfxC91dFhw8LR6KVYnXQAI0By/Sa8I7L4W5WNZ+8GJI1KGVLs0bRU52Oy9Ji2RzDaHgf6hVUzeA==",
         "dependencies": {
-          "Microsoft.ML.OnnxRuntime.Managed": "1.23.2"
+          "Microsoft.ML.OnnxRuntime.Managed": "1.24.4"
         }
       },
       "Microsoft.Web.WebView2": {
@@ -19,8 +19,8 @@
       },
       "Microsoft.ML.OnnxRuntime.Managed": {
         "type": "Transitive",
-        "resolved": "1.23.2",
-        "contentHash": "HtlQuzmVrqhnkmwfmkQ+2re8xPxtVmeLRQaYSJ3pXfzKs4b36+yBfa/LnDuzfX1bGcyWn/McKxmbY87TCAmo1Q==",
+        "resolved": "1.24.4",
+        "contentHash": "e5jsEo0HcCKDMkuRsMSievKoMv10Odv4MGmxbCin8SEm4Pto1qTpwti47xRwMtk9I/zVvfAiFIWquOq/0+22DA==",
         "dependencies": {
           "System.Numerics.Tensors": "9.0.0"
         }
@@ -34,11 +34,11 @@
     "net10.0-windows7.0/win-arm64": {
       "Microsoft.ML.OnnxRuntime.QNN": {
         "type": "Direct",
-        "requested": "[1.23.2, )",
-        "resolved": "1.23.2",
-        "contentHash": "YNSRDre3rQLJQIfqVHuX9yoFsyv+Mi4MG7ocRudcdLvsrfL6NQllFPeHDXyn+ro+uPn5Lty4sVdVLsThVvs2Pg==",
+        "requested": "[1.24.4, )",
+        "resolved": "1.24.4",
+        "contentHash": "CFPkLq0o+ZnzfxC91dFhw8LR6KVYnXQAI0By/Sa8I7L4W5WNZ+8GJI1KGVLs0bRU52Oy9Ji2RzDaHgf6hVUzeA==",
         "dependencies": {
-          "Microsoft.ML.OnnxRuntime.Managed": "1.23.2"
+          "Microsoft.ML.OnnxRuntime.Managed": "1.24.4"
         }
       },
       "Microsoft.Web.WebView2": {
