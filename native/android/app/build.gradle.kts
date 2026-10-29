@@ -39,7 +39,7 @@ val copyWeb by tasks.registering(Sync::class) {
 tasks.named("preBuild") { dependsOn(copyWeb) }
 
 dependencies {
-    implementation("androidx.webkit:webkit:1.12.1")
+    implementation("androidx.webkit:webkit:1.18.0")
     val qnnAar = providers.gradleProperty("qnnAar").orNull
     if (qnnAar == null) {
         implementation("com.microsoft.onnxruntime:onnxruntime-android:1.23.2")
